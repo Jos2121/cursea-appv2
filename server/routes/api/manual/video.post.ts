@@ -1,0 +1,218 @@
+import { defineHandler } from "nitro";
+import { readBody, createError } from "nitro/h3";
+import { pool } from "../../../utils/db";
+import fs from "fs";
+import path from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execPromise = promisify(exec);
+
+export default defineHandler(async (event) => {
+  const body = await readBody(event);
+  
+  const { jobId, backgroundUrl, userPhotoUrl, imageUrl, titulo, artista, dedicatoria, templateConfig } = body;
+
+  if (!jobId || (!userPhotoUrl && !imageUrl)) {
+    throw createError({ statusCode: 400, statusMessage: "jobId and either userPhotoUrl or imageUrl are required" });
+  }
+
+  // Aseguramos que existan las nuevas columnas en la BD
+  try {
+    await pool.query(`
+      ALTER TABLE "MediaJob"
+        ADD COLUMN IF NOT EXISTS "backgroundUrl" TEXT,
+        ADD COLUMN IF NOT EXISTS "userPhotoUrl" TEXT,
+        ADD COLUMN IF NOT EXISTS "titulo" TEXT,
+        ADD COLUMN IF NOT EXISTS "artista" TEXT,
+        ADD COLUMN IF NOT EXISTS "dedicatoria" TEXT;
+    `);
+  } catch (e) {
+    // Ignore schema errors
+  }
+
+  // 1. Obtener información del trabajo
+  const result = await pool.query('SELECT * FROM "MediaJob" WHERE id = $1', [jobId]);
+  const job = result.rows[0];
+
+  if (!job || !job.audioUrl) {
+    throw createError({ statusCode: 400, statusMessage: "Job not found or missing audioUrl" });
+  }
+
+  if (Number(job.generaciones || 0) >= 2) {
+    throw createError({ statusCode: 403, statusMessage: "Límite de generaciones alcanzado" });
+  }
+
+  // 2. Localizar archivos y descargar imagen
+  const mediaDir = path.resolve(process.cwd(), "public/media");
+  if (!fs.existsSync(mediaDir)) {
+    fs.mkdirSync(mediaDir, { recursive: true });
+  }
+
+  const audioPath = path.join(mediaDir, path.basename(job.audioUrl));
+
+  if (!fs.existsSync(audioPath)) {
+    throw createError({ statusCode: 400, statusMessage: "Audio file not found on disk" });
+  }
+
+  let finalImagePath = "";
+  let tempImagePath = "";
+  let tempBgPath = "";
+  
+  try {
+    const targetImage = userPhotoUrl || imageUrl;
+    const finalBgStr = backgroundUrl || 'image_f840ac.jpg';
+
+    if (!targetImage) {
+      throw createError({ statusCode: 400, statusMessage: "No image provided" });
+    }
+
+    if (targetImage.startsWith("http")) {
+      // Es una URL externa: descargarla
+      const imageRes = await fetch(targetImage);
+      if (!imageRes.ok) throw new Error(`Failed to download image from ${targetImage}`);
+      const arrayBuffer = await imageRes.arrayBuffer();
+      tempImagePath = path.join(mediaDir, `temp_photo_${Date.now()}.jpg`);
+      fs.writeFileSync(tempImagePath, Buffer.from(arrayBuffer));
+      finalImagePath = tempImagePath;
+    } else if (targetImage.startsWith("/media/")) {
+      // Es un archivo local que ya existe en el disco
+      finalImagePath = path.join(mediaDir, path.basename(targetImage));
+      if (!fs.existsSync(finalImagePath)) {
+        throw createError({ statusCode: 404, statusMessage: "Local image file not found on disk" });
+      }
+    } else {
+      throw createError({ statusCode: 400, statusMessage: "Invalid image URL format" });
+    }
+
+    // Handle background (download if URL, otherwise check local file)
+    if (finalBgStr.startsWith('http')) {
+      const bgRes = await fetch(finalBgStr);
+      if (bgRes.ok) {
+        tempBgPath = path.join(mediaDir, `temp_bg_${Date.now()}.jpg`);
+        fs.writeFileSync(tempBgPath, Buffer.from(await bgRes.arrayBuffer()));
+      }
+    } else {
+      const localBgPath = path.join(mediaDir, finalBgStr);
+      if (fs.existsSync(localBgPath)) {
+        tempBgPath = localBgPath;
+      }
+    }
+
+    // 3. Ejecutar FFmpeg
+    const videoFileName = `video_${Date.now()}.mp4`;
+    const videoPath = path.join(mediaDir, videoFileName);
+    
+    let ffmpegCommand = "";
+
+    // Si tenemos templateConfig o datos, construimos dinámicamente el complexFilter
+    if (templateConfig || titulo || artista || dedicatoria || backgroundUrl || userPhotoUrl) {
+      const sanitize = (str: string) => {
+        if (!str) return "";
+        return str.replace(/:/g, "\\:").replace(/'/g, "\u2019").replace(/"/g, "\u201D").replace(/[\n\r]/g, " ");
+      };
+      
+      const wrapText = (str: string, maxCharsPerLine = 34) => {
+        if (!str) return "";
+        const words = str.trim().split(/\s+/);
+        let lines: string[] = [];
+        let currentLine = "";
+        for (const word of words) {
+          if ((currentLine + " " + word).trim().length <= maxCharsPerLine) {
+            currentLine = (currentLine + " " + word).trim();
+          } else {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines.join("\n");
+      };
+
+      const safeTitulo = sanitize(titulo);
+      const safeArtista = sanitize(artista);
+      const escapedDedicatoria = wrapText(sanitize(dedicatoria));
+
+      const t = templateConfig || {
+        photo: { x: 130, y: 180, w: 820, h: 820 },
+        titulo: { x: 130, y: 1040, fontSize: 42, color: 'white', align: 'left' },
+        artista: { x: 130, y: 1095, fontSize: 30, color: '#B3B3B3', align: 'left' },
+        dedicatoria: { x: 'center', y: 1620, fontSize: 28, color: '#E5E5E5', align: 'center' }
+      };
+
+      // Extracción de parámetros numéricos desde el body o la config
+      const dedicatoriaX = Number(body.dedicatoriaX) || (t.dedicatoria?.x !== 'center' ? Number(t.dedicatoria?.x) : 540) || 540;
+      const dedicatoriaY = Number(body.dedicatoriaY) || Number(t.dedicatoria?.y) || 1620;
+      const dedicatoriaSize = Number(body.dedicatoriaSize) || Number(t.dedicatoria?.fontSize) || 28;
+      const dedicatoriaColor = t.dedicatoria?.color || 'white';
+
+      const photoW = Number(t.photo?.w) || 820;
+      const photoH = Number(t.photo?.h) || 820;
+      const photoX = Number(t.photo?.x) || 130;
+      const photoY = Number(t.photo?.y) || 180;
+
+      const bgInput = tempBgPath ? `-loop 1 -framerate 1 -i "${tempBgPath}"` : `-f lavfi -i color=c=black:s=1080x1920:r=1`;
+
+      // Escala del fondo sin deformarlo (crop centrado al formato vertical 1080x1920)
+      let filter = `[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-1080)/2:(in_h-1920)/2[bg_base];`;
+      // Recorte dinámico basado en las dimensiones de la foto
+      filter += `[0:v]scale=w=${photoW}:h=${photoH}:force_original_aspect_ratio=increase,crop=${photoW}:${photoH}:(in_w-${photoW})/2:(in_h-${photoH})/2[photo];`;
+      // Overlay
+      filter += `[bg_base][photo]overlay=x=${photoX}:y=${photoY}[v1]`;
+
+      let lastV = 'v1';
+      let vIndex = 2;
+      
+      if (safeTitulo) {
+        const xPos = t.titulo.align === 'center' ? '(w-text_w)/2' : t.titulo.x;
+        filter += `;[${lastV}]drawtext=text='${safeTitulo}':fontcolor=${t.titulo.color}:fontsize=${t.titulo.fontSize}:x=${xPos}:y=${t.titulo.y}[v${vIndex}]`;
+        lastV = `v${vIndex}`;
+        vIndex++;
+      }
+      
+      if (safeArtista) {
+        const xPos = t.artista.align === 'center' ? '(w-text_w)/2' : t.artista.x;
+        filter += `;[${lastV}]drawtext=text='${safeArtista}':fontcolor=${t.artista.color}:fontsize=${t.artista.fontSize}:x=${xPos}:y=${t.artista.y}[v${vIndex}]`;
+        lastV = `v${vIndex}`;
+        vIndex++;
+      }
+      
+      if (escapedDedicatoria) {
+        // Uso de variables dinámicas directas, tamaño, centrado perfecto y espaciado proporcional
+        filter += `;[${lastV}]drawtext=text='${escapedDedicatoria}':fontcolor=${dedicatoriaColor}:fontsize=${dedicatoriaSize}:x=(w-text_w)/2:y=${dedicatoriaY}:line_spacing=${Math.round(dedicatoriaSize * 0.4)}[v${vIndex}]`;
+        lastV = `v${vIndex}`;
+        vIndex++;
+      }
+
+      ffmpegCommand = `ffmpeg -y -loop 1 -framerate 1 -i "${finalImagePath}" ${bgInput} -i "${audioPath}" -filter_complex "${filter}" -map "[${lastV}]" -map 2:a -c:v libx264 -preset ultrafast -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest "${videoPath}"`;
+
+    } else {
+      // Comportamiento fallback
+      ffmpegCommand = `ffmpeg -y -loop 1 -framerate 1 -i "${finalImagePath}" -i "${audioPath}" -c:v libx264 -preset ultrafast -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest "${videoPath}"`;
+    }
+
+    await execPromise(ffmpegCommand);
+
+    // 4. Actualizar base de datos
+    const relativeVideoUrl = `/media/${videoFileName}`;
+    await pool.query(
+      'UPDATE "MediaJob" SET "videoUrl" = $1, "status" = $2, "backgroundUrl" = $3, "userPhotoUrl" = $4, "titulo" = $5, "artista" = $6, "dedicatoria" = $7, "generaciones" = COALESCE("generaciones", 0) + 1 WHERE id = $8',
+      [relativeVideoUrl, 'completed', backgroundUrl, userPhotoUrl, titulo, artista, dedicatoria, jobId]
+    );
+
+    return { success: true, videoUrl: relativeVideoUrl };
+
+  } catch (error: any) {
+    console.error("Video processing error:", error);
+    await pool.query('UPDATE "MediaJob" SET "status" = $1 WHERE id = $2', ['error', jobId]);
+    throw createError({ statusCode: 500, statusMessage: error.message || "Error processing video" });
+  } finally {
+    // Limpieza de archivos temporales
+    if (tempImagePath && fs.existsSync(tempImagePath)) {
+      fs.unlinkSync(tempImagePath);
+    }
+    if (tempBgPath && tempBgPath.includes('temp_bg_') && fs.existsSync(tempBgPath)) {
+      fs.unlinkSync(tempBgPath);
+    }
+  }
+});
