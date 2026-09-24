@@ -21,7 +21,7 @@ export default defineHandler(async (event) => {
   }
 
   // Esto convierte los bytes a texto normal ("996...")
-  const whatsappNumber = whatsappField ? whatsappField.data.toString("utf8") : null;
+  const whatsappNumber = whatsappField ? new TextDecoder().decode(whatsappField.data) : null;
 
   // Directorio de destino
   const mediaDir = path.resolve(process.cwd(), "public/media");
