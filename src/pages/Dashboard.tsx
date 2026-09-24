@@ -102,10 +102,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [generatingAudioId, setGeneratingAudioId] = useState<string | null>(null);
 
-  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
-  const [editingPromptValue, setEditingPromptValue] = useState('');
-  const [isUpdatingPrompt, setIsUpdatingPrompt] = useState(false);
-
   // Regenerate Video Modal State
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const [regenerateJobId, setRegenerateJobId] = useState<string | null>(null);
@@ -815,29 +811,6 @@ export default function Dashboard() {
     </div>
   );
 
-  const handleUpdatePrompt = async (jobId: string) => {
-    if (!editingPromptValue.trim()) return toast.error("El prompt no puede estar vacío");
-    setIsUpdatingPrompt(true);
-    try {
-      const res = await fetch('/api/media/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: jobId, prompt: editingPromptValue })
-      });
-      if (res.ok) {
-        toast.success('Prompt actualizado correctamente');
-        setEditingPromptId(null);
-        fetchJobs();
-      } else {
-        toast.error('Error al actualizar el prompt');
-      }
-    } catch (err: any) {
-      toast.error(`Error: ${err.message}`);
-    } finally {
-      setIsUpdatingPrompt(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F5EADC] p-4 sm:p-8 font-sans selection:bg-[#8B1F32]/20 text-neutral-900">
       
@@ -954,35 +927,9 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="px-3.5 py-3 whitespace-nowrap">
-                        {editingPromptId === job.id ? (
-                          <div className="flex flex-col gap-1.5 w-full max-w-[200px]">
-                            <Textarea
-                              value={editingPromptValue}
-                              onChange={(e) => setEditingPromptValue(e.target.value)}
-                              disabled={isUpdatingPrompt}
-                              className="text-[10px] p-2 min-h-[60px] resize-none"
-                            />
-                            <div className="flex justify-end gap-1">
-                              <button onClick={() => setEditingPromptId(null)} disabled={isUpdatingPrompt} className="px-2 py-1 text-[9px] font-bold uppercase text-neutral-500 hover:bg-neutral-100 rounded">Cancelar</button>
-                              <button onClick={() => handleUpdatePrompt(job.id)} disabled={isUpdatingPrompt} className="px-2 py-1 text-[9px] font-bold uppercase bg-[#8B1F32] text-white rounded flex items-center">
-                                {isUpdatingPrompt ? <RefreshCw className="w-2 h-2 mr-1 animate-spin"/> : null} Guardar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="group relative max-w-[150px]">
-                            <div className="truncate font-medium text-neutral-800" title={job.prompt}>
-                              {job.prompt}
-                            </div>
-                            <button
-                              onClick={() => { setEditingPromptId(job.id); setEditingPromptValue(job.prompt); }}
-                              className="absolute -top-1 -right-2 opacity-0 group-hover:opacity-100 p-1 bg-white border border-neutral-200 shadow-sm text-neutral-500 hover:text-[#8B1F32] rounded transition-opacity"
-                              title="Editar prompt"
-                            >
-                              <Settings className="w-3 h-3"/>
-                            </button>
-                          </div>
-                        )}
+                        <div className="max-w-[150px] truncate font-medium text-neutral-800" title={job.prompt}>
+                          {job.prompt}
+                        </div>
                         {job.recipient && (
                           <div className="text-[9px] text-neutral-400 mt-0.5 flex items-center gap-1 font-bold uppercase max-w-[150px] truncate" title={`To: ${job.recipient}`}>
                             <Send className="w-2.5 h-2.5 shrink-0" /> {job.recipient}
