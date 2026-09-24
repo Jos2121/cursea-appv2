@@ -1,25 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Play, 
-  Pause,
-  Star, 
-  Music, 
-  MessageCircleHeart, 
-  Headphones, 
-  ChevronDown, 
-  ChevronUp,
-  CheckCircle,
-  ShieldCheck,
-  Heart,
-  Sparkles
-} from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { 
+  Loader2, 
+  Image as ImageIcon, 
+  UploadCloud, 
+  X, 
+  ChevronDown, 
+  Check, 
+  Music, 
+  Sparkles, 
+  Heart, 
+  Palette, 
+  MessageSquareText, 
+  Send,
+  Headphones,
+  PlayCircle,
+  Eye,
+  Star,
+  CheckCircle,
+  ShieldCheck
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { VideoEditorPreview } from '@/components/VideoEditorPreview';
+import { TemplateConfig } from './Dashboard';
+
+const DEFAULT_CONFIG: TemplateConfig = {
+  id: '',
+  name: 'Plantilla por Defecto',
+  bgUrl: '',
+  photo: { x: 130, y: 180, w: 820, h: 820 },
+  titulo: { x: 130, y: 1040, fontSize: 42, color: 'white', align: 'left' },
+  artista: { x: 130, y: 1095, fontSize: 30, color: '#B3B3B3', align: 'left' },
+  dedicatoria: { x: 540, y: 1620, fontSize: 28, color: '#E5E5E5', align: 'center' }
+};
 
 export default function CreaTuCancion() {
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [templates, setTemplates] = useState<{id: string, name: string, backgroundUrl: string, config: TemplateConfig}[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [baseConfig, setBaseConfig] = useState<TemplateConfig>(DEFAULT_CONFIG);
+  const [backgroundUrl, setBackgroundUrl] = useState<string>('');
+  
+  // Coordinate & Size states
+  const [photoX, setPhotoX] = useState<number>(130);
+  const [photoY, setPhotoY] = useState<number>(180);
+  const [photoWidth, setPhotoWidth] = useState<number>(820);
+  const [photoHeight, setPhotoHeight] = useState<number>(820);
+  
+  const [tituloX, setTituloX] = useState<number | string>(130);
+  const [tituloY, setTituloY] = useState<number>(1040);
+  const [tituloSize, setTituloSize] = useState<number>(42);
+  
+  const [artistaX, setArtistaX] = useState<number | string>(130);
+  const [artistaY, setArtistaY] = useState<number>(1095);
+  const [artistaSize, setArtistaSize] = useState<number>(30);
+  
+  const [dedicatoriaX, setDedicatoriaX] = useState<number | string>(540);
+  const [dedicatoriaY, setDedicatoriaY] = useState<number>(1620);
+  const [dedicatoriaSize, setDedicatoriaSize] = useState<number>(28);
 
-  // Mantenemos intacta la lógica de simulación de compras reales mediante toasts
+  // User input states
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string>('');
+  const [titulo, setTitulo] = useState('');
+  const [artista, setArtista] = useState('');
+  const [dedicatoria, setDedicatoria] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  
+  // Questionnaire fields
+  const [paraQuien, setParaQuien] = useState('');
+  const [paraQuienOtro, setParaQuienOtro] = useState('');
+  const [ocasion, setOcasion] = useState('');
+  const [ocasionOtro, setOcasionOtro] = useState('');
+  const [estiloMusical, setEstiloMusical] = useState('');
+  const [estiloMusicalOtro, setEstiloMusicalOtro] = useState('');
+  const [tipoVoz, setTipoVoz] = useState('');
+  const [tono, setTono] = useState('');
+  const [nombreDedicado, setNombreDedicado] = useState('');
+  const [historia, setHistoria] = useState('');
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.5);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // Computed config for the preview & payload
+  const constructedConfig: any = {
+    photoX: Number(photoX),
+    photoY: Number(photoY),
+    photoWidth: Number(photoWidth),
+    photoHeight: Number(photoHeight),
+    tituloX: tituloX,
+    tituloY: Number(tituloY),
+    tituloSize: Number(tituloSize),
+    artistaX: artistaX,
+    artistaY: Number(artistaY),
+    artistaSize: Number(artistaSize),
+    dedicatoriaX: dedicatoriaX,
+    dedicatoriaY: Number(dedicatoriaY),
+    dedicatoriaSize: Number(dedicatoriaSize),
+    photo: { x: Number(photoX), y: Number(photoY), w: Number(photoWidth), h: Number(photoHeight) },
+    titulo: { ...baseConfig.titulo, x: tituloX, y: Number(tituloY), fontSize: Number(tituloSize) },
+    artista: { ...baseConfig.artista, x: artistaX, y: Number(artistaY), fontSize: Number(artistaSize) },
+    dedicatoria: { ...baseConfig.dedicatoria, x: dedicatoriaX, y: Number(dedicatoriaY), fontSize: Number(dedicatoriaSize) }
+  };
+
+  // Lógica de simulación de notificaciones en tiempo real (Toasts)
   useEffect(() => {
     const names = ['Carlos M.', 'Ana P.', 'Javier T.', 'Lucía R.', 'Miguel A.'];
     const occasions = ['aniversario', 'cumpleaños', 'boda', 'declaración', 'regalo familiar'];
@@ -33,316 +127,790 @@ export default function CreaTuCancion() {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleFaq = (index: number) => {
-    setActiveFaq(activeFaq === index ? null : index);
+  // Resize observer to maintain preview scale
+  useEffect(() => {
+    const updateScale = () => {
+      const viewportWidth = window.innerWidth;
+      let targetWidth = 360; // default for desktop sticky
+
+      if (viewportWidth < 1024) {
+        targetWidth = Math.min(viewportWidth * 0.9, 400) - 48; // -padding
+      } else if (previewContainerRef.current) {
+        const clientW = previewContainerRef.current.clientWidth;
+        if (clientW > 0) targetWidth = clientW;
+      }
+      
+      const newScale = targetWidth / 1080;
+      setPreviewScale(newScale);
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [isPreviewOpen]);
+
+  useEffect(() => {
+    fetch('/api/templates')
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data)) {
+          setTemplates(data);
+          if (data.length > 0) {
+            handleTemplateSelect(data[0]);
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching templates:", err);
+        toast.error("No se pudieron cargar las plantillas.");
+      });
+  }, []);
+
+  const handleTemplateSelect = (t: any) => {
+    setSelectedTemplateId(t.id);
+    const parsedConfig = (t as any).config || t;
+    const configData = typeof parsedConfig === 'string' ? JSON.parse(parsedConfig) : parsedConfig;
+    
+    const isCoords = configData.type === 'coordenadas';
+    
+    if (!isCoords) {
+      const bg = configData.backgroundUrl || configData.bgUrl || t.bgUrl;
+      if (bg !== undefined) {
+        setBackgroundUrl(String(bg).trim());
+      }
+    }
+    
+    if (configData.photoUrl !== undefined) {
+      setUserPhotoUrl(String(configData.photoUrl).trim());
+    }
+    
+    if (configData.photoX !== undefined) setPhotoX(Number(configData.photoX));
+    else if (configData.photo?.x !== undefined) setPhotoX(Number(configData.photo.x));
+
+    if (configData.photoY !== undefined) setPhotoY(Number(configData.photoY));
+    else if (configData.photo?.y !== undefined) setPhotoY(Number(configData.photo.y));
+
+    if (configData.photoWidth !== undefined) setPhotoWidth(Number(configData.photoWidth));
+    else if (configData.photo?.w !== undefined) setPhotoWidth(Number(configData.photo.w));
+
+    if (configData.photoHeight !== undefined) setPhotoHeight(Number(configData.photoHeight));
+    else if (configData.photo?.h !== undefined) setPhotoHeight(Number(configData.photo.h));
+
+    if (configData.tituloX !== undefined) setTituloX(configData.tituloX);
+    else if (configData.titulo?.x !== undefined) setTituloX(configData.titulo.x);
+
+    if (configData.tituloY !== undefined) setTituloY(Number(configData.tituloY));
+    else if (configData.titulo?.y !== undefined) setTituloY(Number(configData.titulo.y));
+
+    if (configData.tituloSize !== undefined) setTituloSize(Number(configData.tituloSize));
+    else if (configData.titulo?.fontSize !== undefined) setTituloSize(Number(configData.titulo.fontSize));
+
+    if (configData.artistaX !== undefined) setArtistaX(configData.artistaX);
+    else if (configData.artista?.x !== undefined) setArtistaX(configData.artista.x);
+
+    if (configData.artistaY !== undefined) setArtistaY(Number(configData.artistaY));
+    else if (configData.artista?.y !== undefined) setArtistaY(Number(configData.artista.y));
+
+    if (configData.artistaSize !== undefined) setArtistaSize(Number(configData.artistaSize));
+    else if (configData.artista?.fontSize !== undefined) setArtistaSize(Number(configData.artista.fontSize));
+
+    const dX = configData.dedicatoriaX ?? configData.dedicatoryX ?? configData.dedicatoria?.x;
+    const dY = configData.dedicatoriaY ?? configData.dedicatoryY ?? configData.dedicatoria?.y;
+    let dSize = configData.dedicatoriaSize ?? configData.dedicatorySize ?? configData.dedicatoria?.fontSize;
+    
+    if (dX !== undefined) setDedicatoriaX(dX);
+    if (dY !== undefined) setDedicatoriaY(Number(dY));
+    if (dSize !== undefined) setDedicatoriaSize(Number(dSize));
   };
 
-  const faqs = [
-    {
-      question: '¿Cuánto tiempo tarda en estar lista mi canción?',
-      answer: 'Recibirás la primera versión de tu canción en un plazo de 3 a 5 días hábiles. Nuestro estudio boutique diseña cada acorde a partir de las emociones de tu historia.'
-    },
-    {
-      question: '¿Puedo pedir cambios si algo no me convence?',
-      answer: '¡Por supuesto! Tu satisfacción absoluta es nuestra máxima premisa. Ofrecemos hasta 2 rondas de revisiones completas e incluidas para pulir cada frase musical.'
-    },
-    {
-      question: '¿En qué formato recibiré la canción?',
-      answer: 'Te entregaremos la producción final masterizada digitalmente tanto en WAV de alta resolución (calidad de estudio profesional) como en MP3 de alta fidelidad (320kbps).'
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error('La imagen no puede pesar más de 6MB');
+      return;
     }
-  ];
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/public/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.statusMessage || 'Error subiendo archivo');
+
+      setUserPhotoUrl(data.url);
+      toast.success('Foto de portada subida correctamente');
+    } catch (error: any) {
+      toast.error(error.message || 'Hubo un error al subir la imagen');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const finalParaQuien = paraQuien === 'Otro' ? paraQuienOtro : paraQuien;
+    const finalOcasion = ocasion === 'Otro' ? ocasionOtro : ocasion;
+    const finalEstiloMusical = estiloMusical === 'Otro' ? estiloMusicalOtro : estiloMusical;
+
+    if (!selectedTemplateId || !userPhotoUrl || !titulo || !artista || !whatsappNumber || !finalParaQuien || !finalOcasion || !finalEstiloMusical || !tipoVoz || !tono || !nombreDedicado || !historia) {
+      toast.error('Por favor, completa todos los campos requeridos (incluyendo los detalles de la canción).');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/public/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          backgroundUrl,
+          userPhotoUrl,
+          titulo,
+          artista,
+          dedicatoria,
+          whatsappNumber,
+          config: constructedConfig,
+          paraQuien: finalParaQuien,
+          ocasion: finalOcasion,
+          estiloMusical: finalEstiloMusical,
+          tipoVoz,
+          tono,
+          nombreDedicado,
+          historia
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.statusMessage || 'Error al registrar petición');
+
+      const envNumber = (data.paymentWhatsappNumber || import.meta.env.VITE_WHATSAPP_PAYMENT_NUMBER || '').trim();
+      const cleanNumber = envNumber.replace(/\D/g, '');
+
+      if (!cleanNumber) {
+        toast.error('No se ha configurado el número de WhatsApp de pagos. Revisa tus configuraciones.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const text = encodeURIComponent(`¡Listo! He llenado el formulario para crear mi canción inolvidable. Bríndame los métodos de pago.\n\nMi número de petición es: ${whatsappNumber}`);
+      window.location.href = `https://wa.me/${cleanNumber}?text=${text}`;
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Error al procesar tu solicitud. Intenta de nuevo.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderTemplateSelector = () => {
+    const templatesWithBg = templates.filter(t => {
+      const parsedConfig = typeof t.config === 'string' ? JSON.parse(t.config) : (t.config || t);
+      return parsedConfig.type !== 'coordenadas' && (parsedConfig.backgroundUrl || parsedConfig.bgUrl || (t as any).bgUrl);
+    });
+
+    const templatesWithoutBg = templates.filter(t => {
+      const parsedConfig = typeof t.config === 'string' ? JSON.parse(t.config) : (t.config || t);
+      return parsedConfig.type === 'coordenadas' || (!parsedConfig.backgroundUrl && !parsedConfig.bgUrl && !(t as any).bgUrl);
+    });
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex items-center justify-between w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 focus:outline-none focus:ring-1 focus:ring-[#8B1F32] focus:border-[#8B1F32] text-left h-12 shadow-sm transition-all">
+          <span className="truncate">
+            {selectedTemplateId
+              ? templates.find(x => x.id === selectedTemplateId)?.name || 'Plantilla seleccionada'
+              : "Seleccionar plantilla..."}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-neutral-400" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-[320px] bg-white border-neutral-200 max-h-64 overflow-y-auto rounded-xl">
+          {templates.length === 0 ? (
+            <div className="p-4 text-sm text-neutral-500 text-center">No hay plantillas disponibles.</div>
+          ) : (
+            <>
+              {templatesWithBg.length > 0 && (
+                <>
+                  <DropdownMenuLabel className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider px-3 py-2">
+                    Fondo + Posiciones
+                  </DropdownMenuLabel>
+                  {templatesWithBg.map(t => (
+                    <DropdownMenuItem
+                      key={t.id}
+                      onClick={() => handleTemplateSelect(t)}
+                      className="flex items-center justify-between cursor-pointer py-2.5 px-3 text-neutral-800 hover:bg-[#F5EADC]/40 focus:bg-[#F5EADC]/40 transition-colors"
+                    >
+                      <div className="flex items-center truncate w-full">
+                        <Check className={`mr-2 h-4 w-4 shrink-0 text-[#8B1F32] ${selectedTemplateId === t.id ? "opacity-100" : "opacity-0"}`} />
+                        <span className="truncate">{t.name}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+              
+              {templatesWithBg.length > 0 && templatesWithoutBg.length > 0 && (
+                <DropdownMenuSeparator className="bg-neutral-100" />
+              )}
+
+              {templatesWithoutBg.length > 0 && (
+                <>
+                  <DropdownMenuLabel className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider px-3 py-2">
+                    Solo Posiciones
+                  </DropdownMenuLabel>
+                  {templatesWithoutBg.map(t => (
+                    <DropdownMenuItem
+                      key={t.id}
+                      onClick={() => handleTemplateSelect(t)}
+                      className="flex items-center justify-between cursor-pointer py-2.5 px-3 text-neutral-800 hover:bg-[#F5EADC]/40 focus:bg-[#F5EADC]/40 transition-colors"
+                    >
+                      <div className="flex items-center truncate w-full">
+                        <Check className={`mr-2 h-4 w-4 shrink-0 text-[#8B1F32]/70 ${selectedTemplateId === t.id ? "opacity-100" : "opacity-0"}`} />
+                        <span className="truncate">{t.name}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   return (
-    <div className="min-h-screen text-neutral-900 bg-[#FDFBF7] selection:bg-[#8B1F32]/10 selection:text-[#8B1F32] overflow-x-hidden antialiased">
+    <div className="min-h-screen bg-[#F5EADC] font-sans selection:bg-[#8B1F32]/20">
       
-      {/* 1. Hero Section Dividido y Asimétrico */}
-      <section className="relative bg-gradient-to-b from-[#F5EADC] via-[#FDFBF7] to-[#FDFBF7] py-24 lg:py-32 px-6 lg:px-16 overflow-hidden">
-        {/* Luces sutiles superiores */}
-        <div className="absolute top-0 left-1/3 w-[600px] h-[300px] bg-white/40 rounded-full blur-3xl pointer-events-none" />
+      {/* HEADER SECTION - CLON EXACTO DE LANDING */}
+      <header className="pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center space-y-4">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8B1F32]/10 text-[#8B1F32] font-semibold text-xs uppercase tracking-wider shadow-sm">
+          <Sparkles className="w-3.5 h-3.5" />
+          Estudio de Canciones Personalizadas Inolvidables
+        </div>
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-neutral-900 tracking-tight leading-[1.1]">
+          Crea tu canción inolvidable y <br className="hidden sm:block" />
+          <span className="text-[#8B1F32]">emociona para siempre</span>
+        </h1>
+        <p className="text-lg text-neutral-600 max-w-xl mx-auto leading-relaxed">
+          Cuéntanos tus mejores recuerdos y anécdotas, selecciona tu estilo de música predilecto y nuestro estudio boutique compondrá una pieza maestra exclusiva.
+        </p>
         
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          
-          {/* Lado Izquierdo: Textos Impactantes y CTA */}
-          <div className="text-left relative z-10 space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-white shadow-sm text-xs font-bold tracking-wider text-[#8B1F32] uppercase backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5" /> Alta Costura Musical Personalizada
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-serif tracking-tighter text-neutral-900 font-bold leading-[1.05]">
-              Convierte tu historia en una <span className="text-[#8B1F32]">canción inolvidable</span>
-            </h1>
-            
-            <p className="text-xl text-neutral-600 max-w-xl leading-relaxed">
-              Regala emociones reales. Nosotros conceptualizamos, componemos y grabamos la banda sonora de tus mejores vivencias con instrumentistas de sesión.
-            </p>
-            
-            <div className="pt-4">
-              <button className="bg-[#8B1F32] hover:bg-[#741A29] text-white text-lg font-bold py-5 px-12 rounded-full shadow-lg shadow-[#8B1F32]/30 transition-all duration-300 transform hover:scale-105 active:scale-98">
-                ¡Quiero mi canción ahora!
-              </button>
-            </div>
+        {/* Franja de estrellas / Prueba social integrada sutilmente */}
+        <div className="pt-4 flex items-center justify-center gap-2 text-neutral-700 text-sm font-medium">
+          <div className="flex text-[#8B1F32]">
+            {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4" fill="currentColor" />)}
           </div>
+          <span><strong>4.9/5</strong> de clientes conmovidos por sus canciones</span>
+        </div>
+      </header>
 
-          {/* Lado Derecho: Reproductor Inmersivo con Efecto Resplandor */}
-          <div className="relative flex justify-center lg:justify-end items-center">
-            {/* Divs absolutos para el efecto de resplandor brillante y moderno detrás */}
-            <div className="absolute -top-12 -left-12 w-72 h-72 bg-[#8B1F32]/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-4 right-4 w-64 h-64 bg-[#F5EADC] rounded-full blur-3xl pointer-events-none opacity-80" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-100/30 rounded-full blur-3xl pointer-events-none" />
+      <main className="max-w-6xl mx-auto px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          
+          {/* FORM COLUMN - PASOS ADAPTADOS */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            
+            {/* PASO 1: CUÉNTANOS TU HISTORIA */}
+            <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover:opacity-10 pointer-events-none">
+                <Music className="w-24 h-24 text-[#8B1F32]" />
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0">
+                  1
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900">Paso 1: Tu Historia y Sentimiento</h2>
+                  <p className="text-sm text-neutral-500">Inspira la letra de tu canción única.</p>
+                </div>
+              </div>
 
-            {/* Glassmorphism Mini-Player Card */}
-            <div className="relative z-10 w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/60 shadow-2xl rounded-[2rem] p-8 transition-all duration-500 hover:shadow-neutral-900/10 hover:scale-[1.02]">
-              <div className="flex items-center gap-6">
-                <button 
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="bg-[#8B1F32] text-white p-5 rounded-full flex-shrink-0 hover:bg-[#741A29] transition-all shadow-lg transform hover:scale-105 active:scale-95 animate-pulse"
-                  aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
-                >
-                  {isPlaying ? <Pause className="w-6 h-6" fill="currentColor" /> : <Play className="w-6 h-6 ml-0.5" fill="currentColor" />}
-                </button>
-                <div className="flex-grow text-left">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-neutral-950 text-base tracking-tight">"Nuestro Aniversario"</p>
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#8B1F32] bg-[#8B1F32]/10 px-2.5 py-0.5 rounded-full">Estudio Master</span>
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Heart className="w-3 h-3 text-[#8B1F32]" /> ¿Para quién es?
+                    </Label>
+                    <Select value={paraQuien} onValueChange={setParaQuien}>
+                      <SelectTrigger className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all">
+                        <SelectValue placeholder="Selecciona destinatario..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {['Esposo/a', 'Novio/a', 'Mi pareja', 'Mama', 'Papa', 'Hijo/a', 'Amigo/a', 'Abuelo/a', 'Nieto/a', 'Para mi', 'Otro'].map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {paraQuien === 'Otro' && (
+                      <Input placeholder="Especifica..." value={paraQuienOtro} onChange={e => setParaQuienOtro(e.target.value)} className="rounded-xl mt-2 text-sm" />
+                    )}
                   </div>
-                  <p className="text-xs text-neutral-500 mt-1">Género: Pop Acústico & Arreglos de Cuerda</p>
-                  
-                  {/* Barra de progreso interactiva simulada */}
-                  <div className="w-full bg-neutral-900/10 h-2 rounded-full mt-5 overflow-hidden">
-                    <div className={`bg-[#8B1F32] h-full rounded-full transition-all duration-1000 ${isPlaying ? 'w-3/4' : 'w-1/3'}`}></div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-[#8B1F32]" /> ¿Cuál es la ocasión?
+                    </Label>
+                    <Select value={ocasion} onValueChange={setOcasion}>
+                      <SelectTrigger className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all">
+                        <SelectValue placeholder="Selecciona ocasión..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {['Solo para sorprender', 'San Valentin', 'Dia de las flores amarillas', 'Declararse', 'Cumpleaños', 'Aniversario', 'Pedir matrimonio', 'Pedir perdon', 'Boda', 'Dia de la madre', 'Dia del padre', 'Para mi', 'Otro'].map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {ocasion === 'Otro' && (
+                      <Input placeholder="Especifica..." value={ocasionOtro} onChange={e => setOcasionOtro(e.target.value)} className="rounded-xl mt-2 text-sm" />
+                    )}
                   </div>
-                  
-                  <div className="flex justify-between text-xs font-semibold text-neutral-600 mt-2">
-                    <span>{isPlaying ? '2:40' : '1:05'}</span>
-                    <span>3:52</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Music className="w-3 h-3 text-[#8B1F32]" /> Estilo Musical
+                    </Label>
+                    <Select value={estiloMusical} onValueChange={setEstiloMusical}>
+                      <SelectTrigger className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all">
+                        <SelectValue placeholder="Selecciona estilo..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {['Balada romantica', 'Pop latino', 'Reggaeton romantico', 'Cumbia', 'Bachata', 'Salsa', 'Vallenato', 'Huayno peruano', 'Musica cristiana', 'Rock', 'Trap', 'Otro'].map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {estiloMusical === 'Otro' && (
+                      <Input placeholder="Especifica..." value={estiloMusicalOtro} onChange={e => setEstiloMusicalOtro(e.target.value)} className="rounded-xl mt-2 text-sm" />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Headphones className="w-3 h-3 text-[#8B1F32]" /> Voz del Cantante
+                    </Label>
+                    <Select value={tipoVoz} onValueChange={setTipoVoz}>
+                      <SelectTrigger className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all">
+                        <SelectValue placeholder="Tipo de voz..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {['Masculino', 'Femenina'].map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquareText className="w-3 h-3 text-[#8B1F32]" /> Tono Emocional
+                  </Label>
+                  <Select value={tono} onValueChange={setTono}>
+                    <SelectTrigger className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all">
+                      <SelectValue placeholder="Selecciona el tono..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {['Romantica', 'Animada', 'Emocionante', 'Divertida', 'Reflexiva'].map(opt => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Nombre de la persona dedicada</Label>
+                  <Input 
+                    value={nombreDedicado} 
+                    onChange={e => setNombreDedicado(e.target.value)} 
+                    placeholder="Ej. María"
+                    className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Detalles de su historia de amor o vida</Label>
+                  <Textarea 
+                    value={historia} 
+                    onChange={e => setHistoria(e.target.value)} 
+                    placeholder="Escribe anécdotas, momentos y mensajes clave que quieras plasmar en los versos musicales..."
+                    className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all resize-none min-h-[160px]"
+                  />
+                  <div className="bg-[#F5EADC]/40 border border-dashed border-[#8B1F32]/20 p-4 rounded-xl text-[11px] leading-relaxed text-neutral-600">
+                    <span className="font-bold text-[#8B1F32] block mb-1 uppercase tracking-widest">💡 Ideas para tu letra:</span>
+                    • Fechas especiales • Apodos íntimos • Lo que más admiras • Momentos compartidos que nunca olvidarán • Mensaje de cierre.
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-        </div>
-      </section>
-
-      {/* 2. Franja de Prueba Social Horizontal */}
-      <section className="bg-white/80 backdrop-blur-md py-12 border-y border-neutral-200/40 relative z-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-16 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-4">
-            <div className="flex text-[#8B1F32] gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-6 h-6" fill="currentColor" />
-              ))}
-            </div>
-            <div>
-              <span className="text-3xl font-serif font-black text-neutral-900">4.9<span className="text-sm font-sans font-normal text-neutral-400"> / 5.0</span></span>
-              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Puntuación Certificada</p>
-            </div>
-          </div>
-          <p className="text-xl font-medium text-neutral-800 max-w-3xl text-left leading-relaxed">
-            Más de <span className="text-[#8B1F32] font-bold underline decoration-wavy underline-offset-4">10,000 legados emocionales</span> compuestos, grabados y cantados por profesionales con maestría internacional.
-          </p>
-        </div>
-      </section>
-
-      {/* 3. Galería de Ejemplos en Bento Grid Layout */}
-      <section className="bg-gradient-to-b from-[#FDFBF7] to-white py-24 lg:py-32 px-6 lg:px-16">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-left mb-16">
-            <span className="text-xs font-bold tracking-widest text-[#8B1F32] uppercase bg-[#8B1F32]/10 px-3 py-1 rounded-full">Catálogo de Referencia</span>
-            <h2 className="text-5xl md:text-6xl font-serif tracking-tighter font-bold text-neutral-900 mt-4 mb-6">
-              Escucha la nitidez de nuestro arte
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-xl">
-              Selecciona tu género preferido y deléitate con las piezas compuestas para nuestros clientes.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: 'Romántico Premium', desc: 'Arreglos sublimes de piano de cola, guitarras acústicas y voces cálidas perfectas para aniversarios entrañables.', icon: <Heart className="w-6 h-6 text-[#8B1F32]" />, label: 'El preferido de parejas' },
-              { title: 'Legado Familiar', desc: 'Composiciones nostálgicas e instrumentaciones acústicas diseñadas para homenajear a padres, madres y abuelos.', icon: <MessageCircleHeart className="w-6 h-6 text-[#8B1F32]" />, label: 'Lleno de anécdotas' },
-              { title: 'Celebración Pop', desc: 'Arreglos contemporáneos con ritmos dinámicos, alegres e inspiradores ideales para sorprender en cumpleaños.', icon: <Music className="w-6 h-6 text-[#8B1F32]" />, label: 'Divertido y enérgico' }
-            ].map((item, idx) => (
-              <div key={idx} className="group bg-white border border-neutral-100/80 rounded-[2rem] p-8 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:border-neutral-200 flex flex-col justify-between">
+            {/* PASO 2: PERSONALIZACIÓN VISUAL */}
+            <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6 relative overflow-hidden group">
+              <div className="absolute -top-1 -right-1 w-24 h-24 pointer-events-none z-10">
+                <div className="absolute top-[20px] right-[-28px] w-[130px] py-1 bg-[#8B1F32] text-white text-[9px] font-bold uppercase tracking-[0.2em] text-center rotate-45 shadow-lg shadow-[#8B1F32]/20 border-y border-white/20">
+                  Premium
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0 relative">
+                  2
+                  <div className="absolute -top-1 -left-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-neutral-100">
+                    <Sparkles className="w-2.5 h-2.5 text-[#8B1F32]" />
+                  </div>
+                </div>
                 <div>
-                  <div className="flex justify-between items-center mb-8">
-                    <div className="bg-[#F5EADC] w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      {item.icon}
+                  <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+                    Paso 2: Portada y Estética Visual
+                    <Heart className="w-4 h-4 text-[#8B1F32] fill-[#8B1F32]/10" />
+                  </h2>
+                  <p className="text-sm text-neutral-500">Diseña el arte de fondo para el reproductor.</p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Plantilla Artística del Álbum</Label>
+                  {renderTemplateSelector()}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Foto para la Portada</Label>
+                  {!userPhotoUrl ? (
+                    <div 
+                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                        isUploading ? 'bg-[#F5EADC]/20 border-neutral-300' : 'hover:bg-[#F5EADC]/20 border-[#8B1F32]/20 hover:border-[#8B1F32] cursor-pointer'
+                      }`}
+                      onClick={() => !isUploading && fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center justify-center text-neutral-400">
+                          <Loader2 className="h-8 w-8 animate-spin mb-2 text-[#8B1F32]" />
+                          <span className="text-xs">Subiendo fotografía...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <UploadCloud className="h-10 w-10 text-[#8B1F32]/60" />
+                          <div>
+                            <span className="text-sm font-semibold text-neutral-800">Sube una fotografía especial</span>
+                            <span className="text-[10px] text-neutral-400 block mt-0.5 uppercase tracking-tighter">JPG o PNG (Máx. 6MB)</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-[10px] font-bold text-neutral-400 bg-neutral-50 px-3 py-1 rounded-full uppercase tracking-wider">{item.label}</span>
+                  ) : (
+                    <div className="relative inline-block group">
+                      <img src={userPhotoUrl} alt="Portada" className="h-32 w-32 object-cover rounded-xl shadow-lg border border-neutral-200" />
+                      <button
+                        type="button"
+                        onClick={() => setUserPhotoUrl('')}
+                        className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-md border border-neutral-100 text-neutral-400 hover:text-[#8B1F32] transition-all transform hover:scale-110"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Título de tu Canción</Label>
+                    <Input 
+                      value={titulo} 
+                      onChange={e => setTitulo(e.target.value)} 
+                      placeholder="Ej. Eres Mi Destino Perfecto"
+                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
+                      maxLength={40}
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold mb-3 text-neutral-900 tracking-tight">{item.title}</h3>
-                  <p className="text-neutral-600 text-base leading-relaxed mb-8">{item.desc}</p>
-                </div>
-                <button className="flex items-center justify-center gap-2.5 w-full py-4 bg-neutral-50 hover:bg-[#8B1F32] text-neutral-800 hover:text-white rounded-2xl border border-neutral-200/60 hover:border-[#8B1F32] transition-all duration-300 font-bold text-sm">
-                  <Play className="w-4 h-4 fill-current" /> Oír Muestra Oficial
-                </button>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4. Sección Como Funciona: Revolución Horizontal Bento Box */}
-      <section className="bg-gradient-to-b from-white via-[#F5EADC]/40 to-[#F5EADC] py-24 lg:py-32 px-6 lg:px-16">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-left mb-16">
-            <span className="text-xs font-bold tracking-widest text-[#8B1F32] uppercase bg-[#8B1F32]/10 px-3 py-1 rounded-full">Proceso Simplificado</span>
-            <h2 className="text-5xl md:text-6xl font-serif tracking-tighter font-bold text-neutral-900 mt-4 mb-6">
-              Tu obra maestra en 3 actos sencillos
-            </h2>
-            <p className="text-lg text-neutral-700 max-w-xl">
-              Abandonamos las complicaciones. Rediseñamos el flujo de creación musical para hacerlo intuitivo y fascinante.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { step: '1', title: 'Cuenta tu historia', desc: 'Responde nuestro formulario interactivo de anécdotas. Indícanos las vivencias, nombres clave y el mensaje principal que quieres transmitir.', icon: <MessageCircleHeart className="w-8 h-8" /> },
-              { step: '2', title: 'Producción & Arreglos', desc: 'Nuestros compositores redactan la lírica ideal. Músicos profesionales graban voz e instrumentos reales directamente en el estudio.', icon: <Music className="w-8 h-8" /> },
-              { step: '3', title: 'Recibe tu Master MP3', desc: 'En pocos días obtendrás los archivos finales en calidad de estudio profesional (WAV y MP3), listos para reproducir y atesorar para siempre.', icon: <Headphones className="w-8 h-8" /> }
-            ].map((item, idx) => (
-              <div key={idx} className="relative overflow-hidden bg-white/80 backdrop-blur-md p-10 rounded-[2rem] shadow-xl border border-white transition-all duration-500 hover:shadow-2xl hover:bg-white group">
-                
-                {/* Marca de agua gigante con el número del paso en el fondo */}
-                <span className="absolute text-[11rem] font-serif font-black text-[#8B1F32] opacity-[0.04] select-none pointer-events-none -top-12 -right-4 group-hover:opacity-[0.08] transition-opacity duration-300">
-                  {item.step}
-                </span>
-                
-                <div className="w-16 h-16 bg-[#FDFBF7] text-[#8B1F32] rounded-2xl flex items-center justify-center shadow-inner mb-6 relative z-10 transition-transform duration-300 group-hover:scale-105">
-                  {item.icon}
-                </div>
-                
-                <div className="relative z-10 text-left">
-                  <h3 className="text-2xl font-bold mb-3 text-neutral-950 tracking-tight">{item.title}</h3>
-                  <p className="text-neutral-600 text-base leading-relaxed">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* 5. Muro de Testimonios Estilo Masonry Asimétrico */}
-      <section className="bg-gradient-to-b from-[#F5EADC] to-[#FDFBF7] py-24 lg:py-32 px-6 lg:px-16">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-left mb-16">
-            <span className="text-xs font-bold tracking-widest text-[#8B1F32] uppercase bg-[#8B1F32]/10 px-3 py-1 rounded-full">Experiencias Reales</span>
-            <h2 className="text-5xl md:text-6xl font-serif tracking-tighter font-bold text-neutral-900 mt-4 mb-6">
-              Resonando en los corazones de nuestros clientes
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-xl">
-              Conoce los relatos de quienes convirtieron palabras cotidianas en canciones imperecederas.
-            </p>
-          </div>
-          
-          {/* Layout de columnas asimétricas tipo Masonry real */}
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-            {[
-              { name: 'María Gómez', role: 'Aniversario de Bodas', text: 'Fue el obsequio más conmovedor que he entregado. Lloramos juntos al oír los pasajes de nuestro noviazgo plasmados en acordes de piano de cola. Absolutamente magistral.' },
-              { name: 'Roberto Díaz', role: 'Homenaje a su Madre', text: 'La nitidez técnica y la calidez del intérprete vocal me dejaron atónito. Lograron capturar con fidelidad quirúrgica el agradecimiento que deseaba plasmar. Trato de diez.' },
-              { name: 'Elena Torres', role: 'Canción de Cuna Personalizada', text: 'Un servicio veloz, sofisticado y de calidad excepcional. El arreglo para mi primer hijo se ha vuelto un auténtico himno familiar nocturno.' },
-              { name: 'Juan Pablo R.', role: 'Sorpresa en Recepción', text: 'Sorprendí a mi esposa a mitad del banquete reproduciendo la melodía secreta que encargué aquí. La atmósfera se volvió completamente mágica e inolvidable.' },
-              { name: 'Clara M.', role: '80 Años de la Abuela', text: 'Compilamos vivencias de sus 6 hijos y 14 nietos. Lograron armar una letra poética impecable sobre arreglos folclóricos que perdurarán por siempre.' }
-            ].map((testimonio, idx) => (
-              <div key={idx} className="break-inside-avoid bg-white p-8 rounded-3xl shadow-lg border border-neutral-100 flex flex-col justify-between transition-all duration-500 hover:shadow-2xl hover:border-neutral-200">
-                <div>
-                  <div className="flex text-[#8B1F32] gap-0.5 mb-5">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4" fill="currentColor" />
-                    ))}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Nombre del Artista o Dedicante</Label>
+                    <Input 
+                      value={artista} 
+                      onChange={e => setArtista(e.target.value)} 
+                      placeholder="Ej. Carlos para Sofía"
+                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
+                      maxLength={30}
+                    />
                   </div>
-                  <p className="text-neutral-600 text-base italic mb-6 leading-relaxed text-left">
-                    "{testimonio.text}"
-                  </p>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Dedicatoria Especial para el cierre</Label>
+                    <Textarea 
+                      value={dedicatoria} 
+                      onChange={e => setDedicatoria(e.target.value)} 
+                      placeholder="Un mensaje inolvidable impreso al final del video/reproductor..."
+                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all resize-none min-h-[100px]"
+                      maxLength={80}
+                    />
+                    <div className="text-[10px] text-right text-neutral-400 font-mono">
+                      {dedicatoria.length}/80
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PASO 3: DATOS DE ENTREGA */}
+            <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0">
+                  3
                 </div>
                 <div>
-                  <div className="h-px bg-neutral-100 mb-4" />
-                  <div className="text-left">
-                    <div className="font-bold text-neutral-900 tracking-tight text-base">{testimonio.name}</div>
-                    <div className="text-xs text-[#8B1F32] font-semibold mt-0.5">{testimonio.role}</div>
-                  </div>
+                  <h2 className="text-xl font-bold text-neutral-900">Paso 3: Envío de la Obra</h2>
+                  <p className="text-sm text-neutral-500">¿A qué WhatsApp remitimos la composición terminada?</p>
                 </div>
               </div>
-            ))}
-          </div>
 
-        </div>
-      </section>
-
-      {/* 6. FAQ Acordeón Inteligente */}
-      <section className="bg-white py-24 lg:py-32 px-6 lg:px-16">
-        <div className="max-w-4xl mx-auto">
-          
-          <div className="text-left mb-16">
-            <span className="text-xs font-bold tracking-widest text-[#8B1F32] uppercase bg-[#8B1F32]/10 px-3 py-1 rounded-full">Preguntas Frecuentes</span>
-            <h2 className="text-5xl md:text-6xl font-serif tracking-tighter font-bold text-neutral-900 mt-4 mb-6">
-              Despejando tus dudas
-            </h2>
-          </div>
-          
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => {
-              const isOpen = activeFaq === idx;
-              return (
-                <div key={idx} className="bg-[#FDFBF7] rounded-2xl border border-neutral-200/60 overflow-hidden transition-all duration-300 hover:border-neutral-300">
-                  <button 
-                    onClick={() => toggleFaq(idx)}
-                    className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
-                    aria-expanded={isOpen}
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Número de WhatsApp (con código de país)</Label>
+                  <Input
+                    value={whatsappNumber}
+                    onChange={e => setWhatsappNumber(e.target.value)}
+                    placeholder="Ej. 51999888777"
+                    className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
+                    type="tel"
+                  />
+                </div>
+                
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    className="w-full h-14 rounded-2xl text-base font-bold shadow-xl bg-[#8B1F32] hover:bg-[#731929] shadow-[#8B1F32]/25 text-white transition-all transform hover:-translate-y-0.5 active:scale-95"
+                    disabled={isSubmitting || isUploading}
                   >
-                    <span className="font-bold text-lg text-neutral-900 tracking-tight pr-4">{faq.question}</span>
-                    <div className={`p-2 rounded-full transition-colors ${isOpen ? 'bg-[#8B1F32]/10 text-[#8B1F32]' : 'bg-neutral-200/60 text-neutral-500'}`}>
-                      {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Componiendo melodías en el estudio...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 mr-2" />
+                        Solicitar Creación de Canción
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            {/* BLOQUE DE TESTIMONIOS ADAPTADO AL ESTILO DE LA LANDING */}
+            <div className="bg-white/40 p-6 rounded-3xl border border-[#8B1F32]/10 space-y-4">
+              <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-[#8B1F32]" /> Reseñas de Clientes Satisfechos
+              </h3>
+              <div className="space-y-3 text-xs text-neutral-600 italic">
+                <p className="border-l-2 border-[#8B1F32] pl-3">"Lloramos juntos al escuchar nuestra historia cantada con tanta sensibilidad en piano de cola. ¡El mejor regalo posible!" - María G.</p>
+                <p className="border-l-2 border-[#8B1F32] pl-3">"La nitidez técnica y los arreglos de voces profesionales superaron todas mis expectativas. Súper recomendados." - Roberto D.</p>
+              </div>
+            </div>
+          </form>
+
+          {/* PREVIEW COLUMN (ATRIL DE ESTUDIO) - STICKY DESKTOP */}
+          <div className="hidden lg:sticky lg:top-12 lg:flex flex-col items-center">
+            <div className="w-full max-w-[360px] bg-white p-3 rounded-[40px] shadow-2xl border border-neutral-100 relative group">
+              
+              {/* STATUS HEADER */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-50 mb-3">
+                <div className="flex items-center gap-2">
+                  <Headphones className="w-4 h-4 text-[#8B1F32]" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Estudio en vivo</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500">Preview</span>
+                </div>
+              </div>
+
+              <div ref={previewContainerRef} className="rounded-[32px] overflow-hidden bg-neutral-950 aspect-[9/16] shadow-inner relative">
+                <VideoEditorPreview
+                  config={constructedConfig}
+                  onUpdateConfig={() => {}} // Read-only for landing layout
+                  backgroundUrl={backgroundUrl}
+                  customBackground=""
+                  userPhotoUrl={userPhotoUrl}
+                  titulo={titulo}
+                  artista={artista}
+                  dedicatoria={dedicatoria}
+                  
+                  photoX={photoX}
+                  photoY={photoY}
+                  photoWidth={photoWidth}
+                  photoHeight={photoHeight}
+                  tituloX={tituloX}
+                  tituloY={tituloY}
+                  tituloSize={tituloSize}
+                  artistaX={artistaX}
+                  artistaY={artistaY}
+                  artistaSize={artistaSize}
+                  dedicatoriaX={dedicatoriaX}
+                  dedicatoriaY={dedicatoriaY}
+                  dedicatoriaSize={dedicatoriaSize}
+                  
+                  scale={previewScale}
+                />
+                
+                <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[32px]" />
+              </div>
+
+              {/* FOOTER DE CONFIANZA */}
+              <div className="px-6 py-8 text-center space-y-3">
+                <div className="flex justify-center -space-x-2">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-neutral-100 overflow-hidden shadow-sm">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+25}`} alt="User" />
                     </div>
-                  </button>
-                  <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-60 border-t border-neutral-200/40' : 'max-h-0'}`}>
-                    <div className="p-6 text-neutral-600 text-base leading-relaxed bg-white text-left">
-                      {faq.answer}
-                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed max-w-[220px] mx-auto italic">
+                  "Al enviar tu solicitud, nuestros instrumentistas profesionales comenzarán el proceso creativo a medida."
+                </p>
+                
+                <div className="pt-2 flex justify-center gap-4 text-[10px] text-neutral-500 font-medium">
+                  <span className="flex items-center gap-1"><Check className="w-3 h-3 text-[#8B1F32]" /> Calidad Máster</span>
+                  <span className="flex items-center gap-1"><Check className="w-3 h-3 text-[#8B1F32]" /> Satisfacción</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+      
+      {/* FOOTER BRanding */}
+      <footer className="py-12 border-t border-[#8B1F32]/10 bg-white/50 text-center">
+        <p className="text-neutral-400 text-xs font-semibold uppercase tracking-[0.3em]">
+          Crea Tu Canción • Recuerdos Hechos Melodía
+        </p>
+      </footer>
+
+      {/* MOBILE PREVIEW TOGGLE TAB */}
+      <div className="lg:hidden fixed right-0 top-1/2 -translate-y-1/2 z-50">
+        <button
+          onClick={() => setIsPreviewOpen(true)}
+          className="bg-[#8B1F32] text-white py-6 px-3 rounded-l-[24px] shadow-2xl flex flex-col items-center gap-3 [writing-mode:vertical-lr] font-bold text-[11px] uppercase tracking-[0.2em] hover:bg-[#731929] transition-all transform hover:-translate-x-1 active:scale-95 border-l border-y border-white/20"
+        >
+          <div className="flex items-center gap-2 rotate-180">
+            <Eye className="w-4 h-4" />
+            <span>Ver vista Previa</span>
+          </div>
+        </button>
+      </div>
+
+      {/* MOBILE PREVIEW DRAWER */}
+      <AnimatePresence>
+        {isPreviewOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPreviewOpen(false)}
+              className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-[60] lg:hidden"
+            />
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-[90%] max-w-[400px] bg-[#F5EADC] z-[70] shadow-2xl lg:hidden flex flex-col border-l border-[#8B1F32]/10"
+            >
+              <div className="flex justify-between items-center px-6 py-6 border-b border-[#8B1F32]/10 bg-white/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#8B1F32]/10 flex items-center justify-center">
+                    <Headphones className="w-4 h-4 text-[#8B1F32]" />
+                  </div>
+                  <h3 className="font-serif font-bold text-xl text-neutral-900">Vista Previa</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="rounded-full text-neutral-400 hover:text-[#8B1F32] hover:bg-rose-50"
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center space-y-8">
+                <div className="w-full max-w-[320px] bg-white p-3 rounded-[40px] shadow-xl border border-neutral-100 relative">
+                  <div className="rounded-[32px] overflow-hidden bg-neutral-950 aspect-[9/16] shadow-inner relative">
+                    <VideoEditorPreview
+                      config={constructedConfig}
+                      onUpdateConfig={() => {}}
+                      backgroundUrl={backgroundUrl}
+                      customBackground=""
+                      userPhotoUrl={userPhotoUrl}
+                      titulo={titulo}
+                      artista={artista}
+                      dedicatoria={dedicatoria}
+                      
+                      photoX={photoX}
+                      photoY={photoY}
+                      photoWidth={photoWidth}
+                      photoHeight={photoHeight}
+                      tituloX={tituloX}
+                      tituloY={tituloY}
+                      tituloSize={tituloSize}
+                      artistaX={artistaX}
+                      artistaY={artistaY}
+                      artistaSize={artistaSize}
+                      dedicatoriaX={dedicatoriaX}
+                      dedicatoriaY={dedicatoriaY}
+                      dedicatoriaSize={dedicatoriaSize}
+                      
+                      scale={previewScale * 1.1}
+                    />
+                    <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[32px]" />
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-        </div>
-      </section>
-
-      {/* 7. Footer y CTA Final Confección Premium */}
-      <section className="bg-[#8B1F32] py-24 lg:py-32 px-6 lg:px-16 text-center relative overflow-hidden rounded-t-[3rem]">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto relative z-10">
-          <h2 className="text-5xl md:text-7xl font-serif tracking-tighter font-bold text-white mb-6 leading-tight">
-            ¿Preparado para obsequiar una obra imperecedera?
-          </h2>
-          <p className="text-white/80 text-xl max-w-xl mx-auto mb-12 leading-relaxed">
-            Consigue hoy una pieza artística original concebida directamente a partir de tus mejores recuerdos familiares.
-          </p>
-          
-          <button className="bg-white text-[#8B1F32] hover:bg-neutral-50 text-xl font-bold py-5 px-14 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-98 mb-12">
-            Comenzar mi obra de arte musical
-          </button>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-white/90 font-medium text-sm border-t border-white/10 pt-8 max-w-xl mx-auto">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle className="w-5 h-5 text-white/60" />
-              <span>Formatos WAV & MP3 de Estudio</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-white/60" />
-              <span>Garantía de Satisfacción Absoluta</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
+                <div className="bg-white/60 p-6 rounded-3xl border border-[#8B1F32]/5 text-center space-y-4 w-full">
+                  <p className="text-[11px] text-neutral-500 font-bold uppercase tracking-[0.2em]">Configuración Actual</p>
+                  <div className="grid grid-cols-2 gap-4 text-left">
+                    <div className="bg-white p-3 rounded-xl border border-neutral-100">
+                      <p className="text-[9px] text-neutral-400 uppercase font-bold">Título</p>
+                      <p className="text-xs font-bold text-neutral-800 truncate">{titulo || 'Sin título'}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-neutral-100">
+                      <p className="text-[9px] text-neutral-400 uppercase font-bold">Artista</p>
+                      <p className="text-xs font-bold text-neutral-800 truncate">{artista || 'Sin artista'}</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setIsPreviewOpen(false)}
+                    className="w-full h-12 rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-[#8B1F32]/20"
+                  >
+                    Seguir Llenando Petición
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
