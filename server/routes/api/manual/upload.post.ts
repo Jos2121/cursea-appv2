@@ -20,6 +20,7 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "No audio file found in request" });
   }
 
+  // Esto convierte los bytes a texto normal ("996...")
   const whatsappNumber = whatsappField ? whatsappField.data.toString("utf8") : null;
 
   // Directorio de destino
@@ -37,14 +38,14 @@ export default defineHandler(async (event) => {
   // Crear UUID para el nuevo Job
   const jobId = randomUUID();
 
-  // Insertar registro en Base de Datos (MediaJob)
+  // Insertar registro agregando la columna 'recipient' para el UI
   await pool.query(
     `INSERT INTO "MediaJob" 
-      (id, status, "audioUrl", source, "whatsappNumber", prompt, "createdAt", "updatedAt")
+      (id, status, "audioUrl", source, "whatsappNumber", recipient, prompt, "createdAt", "updatedAt")
      VALUES 
-      ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+      ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) 
      RETURNING *`,
-    [jobId, 'audio_ready', relativeUrl, 'manual', whatsappNumber, 'Subida manual de audio']
+    [jobId, 'audio_ready', relativeUrl, 'manual', whatsappNumber, whatsappNumber, 'Subida manual de audio']
   );
 
   return {
