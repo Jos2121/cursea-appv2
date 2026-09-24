@@ -140,6 +140,7 @@ export default function Dashboard() {
   const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   
   // Studio Step 2 (Video Player 9:16 fields)
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [backgroundUrl, setBackgroundUrl] = useState('');
   const [customBackground, setCustomBackground] = useState('');
   const [userPhotoUrl, setUserPhotoUrl] = useState('');
@@ -460,8 +461,8 @@ export default function Dashboard() {
     }
     
     const finalBg = backgroundUrl === 'custom' ? customBackground : backgroundUrl;
-    if (!finalBg || !userPhotoUrl || !titulo || !artista) {
-      toast.error('Por favor, completa todos los campos del video.');
+    if (!whatsappNumber || !finalBg || !userPhotoUrl || !titulo || !artista) {
+      toast.error('Por favor, completa todos los campos requeridos (Número, Fondo, Portada, etc).');
       return;
     }
 
@@ -475,7 +476,7 @@ export default function Dashboard() {
         const resAudio = await fetch('/api/manual/audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
+          body: JSON.stringify({ prompt, whatsappNumber })
         });
         const dataAudio = await resAudio.json();
         
@@ -487,6 +488,7 @@ export default function Dashboard() {
       } else if (studioMode === 'upload') {
         const formData = new FormData();
         formData.append('audioFile', selectedAudioFile);
+        if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
         
         const resUpload = await fetch('/api/manual/upload', {
           method: 'POST',
@@ -517,7 +519,8 @@ export default function Dashboard() {
           artista,
           dedicatoria,
           dedicatoriaSize,
-          templateConfig: studioTemplateConfig
+          templateConfig: studioTemplateConfig,
+          whatsappNumber
         })
       });
 
@@ -545,6 +548,7 @@ export default function Dashboard() {
     setStudioStep(1);
     setStudioJobId(null);
     setPrompt('');
+    setWhatsappNumber('');
     setBackgroundUrl('');
     setCustomBackground('');
     setUserPhotoUrl('');
@@ -1086,6 +1090,8 @@ export default function Dashboard() {
                   </p>
                   <input
                     type="number"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
                     placeholder="Escribe un número..."
                     className="w-full max-w-xs rounded-xl border border-neutral-200 p-3 text-sm focus:border-[#8B1F32] focus:ring-1 focus:ring-[#8B1F32] outline-none transition-all"
                   />
@@ -1252,7 +1258,7 @@ export default function Dashboard() {
 
                   <Button
                     onClick={handleSubmit}
-                    disabled={(!userPhotoUrl || !titulo || !artista || (backgroundUrl === 'custom' && !customBackground)) || isProcessing}
+                    disabled={(!whatsappNumber || !userPhotoUrl || !titulo || !artista || (backgroundUrl === 'custom' && !customBackground)) || isProcessing}
                     className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm mt-4"
                   >
                     {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
