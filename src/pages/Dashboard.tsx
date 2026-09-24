@@ -1270,7 +1270,7 @@ export default function Dashboard() {
 
                   <Button
                     onClick={handleSubmit}
-                    disabled={(!whatsappNumber || !userPhotoUrl || !titulo || !artista || (backgroundUrl === 'custom' && !customBackground)) || isProcessing}
+                    disabled={isProcessing}
                     className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm mt-4"
                   >
                     {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
