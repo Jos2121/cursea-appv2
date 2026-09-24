@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   Loader2, 
-  Image as ImageIcon, 
   UploadCloud, 
   X, 
   ChevronDown, 
@@ -11,15 +10,14 @@ import {
   Music, 
   Sparkles, 
   Heart, 
-  Palette, 
   MessageSquareText, 
   Send,
   Headphones,
-  PlayCircle,
   Eye,
   Star,
   CheckCircle,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -113,7 +111,6 @@ export default function CreaTuCancion() {
     dedicatoria: { ...baseConfig.dedicatoria, x: dedicatoriaX, y: Number(dedicatoriaY), fontSize: Number(dedicatoriaSize) }
   };
 
-  // Lógica de simulación de notificaciones en tiempo real (Toasts)
   useEffect(() => {
     const names = ['Carlos M.', 'Ana P.', 'Javier T.', 'Lucía R.', 'Miguel A.'];
     const occasions = ['aniversario', 'cumpleaños', 'boda', 'declaración', 'regalo familiar'];
@@ -127,14 +124,13 @@ export default function CreaTuCancion() {
     return () => clearInterval(interval);
   }, []);
 
-  // Resize observer to maintain preview scale
   useEffect(() => {
     const updateScale = () => {
       const viewportWidth = window.innerWidth;
-      let targetWidth = 360; // default for desktop sticky
+      let targetWidth = 360;
 
       if (viewportWidth < 1024) {
-        targetWidth = Math.min(viewportWidth * 0.9, 400) - 48; // -padding
+        targetWidth = Math.min(viewportWidth * 0.9, 400) - 48;
       } else if (previewContainerRef.current) {
         const clientW = previewContainerRef.current.clientWidth;
         if (clientW > 0) targetWidth = clientW;
@@ -161,7 +157,6 @@ export default function CreaTuCancion() {
       })
       .catch(err => {
         console.error("Error fetching templates:", err);
-        toast.error("No se pudieron cargar las plantillas.");
       });
   }, []);
 
@@ -174,42 +169,28 @@ export default function CreaTuCancion() {
     
     if (!isCoords) {
       const bg = configData.backgroundUrl || configData.bgUrl || t.bgUrl;
-      if (bg !== undefined) {
-        setBackgroundUrl(String(bg).trim());
-      }
+      if (bg !== undefined) setBackgroundUrl(String(bg).trim());
     }
     
-    if (configData.photoUrl !== undefined) {
-      setUserPhotoUrl(String(configData.photoUrl).trim());
-    }
-    
+    if (configData.photoUrl !== undefined) setUserPhotoUrl(String(configData.photoUrl).trim());
     if (configData.photoX !== undefined) setPhotoX(Number(configData.photoX));
     else if (configData.photo?.x !== undefined) setPhotoX(Number(configData.photo.x));
-
     if (configData.photoY !== undefined) setPhotoY(Number(configData.photoY));
     else if (configData.photo?.y !== undefined) setPhotoY(Number(configData.photo.y));
-
     if (configData.photoWidth !== undefined) setPhotoWidth(Number(configData.photoWidth));
     else if (configData.photo?.w !== undefined) setPhotoWidth(Number(configData.photo.w));
-
     if (configData.photoHeight !== undefined) setPhotoHeight(Number(configData.photoHeight));
     else if (configData.photo?.h !== undefined) setPhotoHeight(Number(configData.photo.h));
-
     if (configData.tituloX !== undefined) setTituloX(configData.tituloX);
     else if (configData.titulo?.x !== undefined) setTituloX(configData.titulo.x);
-
     if (configData.tituloY !== undefined) setTituloY(Number(configData.tituloY));
     else if (configData.titulo?.y !== undefined) setTituloY(Number(configData.titulo.y));
-
     if (configData.tituloSize !== undefined) setTituloSize(Number(configData.tituloSize));
     else if (configData.titulo?.fontSize !== undefined) setTituloSize(Number(configData.titulo.fontSize));
-
     if (configData.artistaX !== undefined) setArtistaX(configData.artistaX);
     else if (configData.artista?.x !== undefined) setArtistaX(configData.artista.x);
-
     if (configData.artistaY !== undefined) setArtistaY(Number(configData.artistaY));
     else if (configData.artista?.y !== undefined) setArtistaY(Number(configData.artista.y));
-
     if (configData.artistaSize !== undefined) setArtistaSize(Number(configData.artistaSize));
     else if (configData.artista?.fontSize !== undefined) setArtistaSize(Number(configData.artista.fontSize));
 
@@ -389,21 +370,29 @@ export default function CreaTuCancion() {
   return (
     <div className="min-h-screen bg-[#F5EADC] font-sans selection:bg-[#8B1F32]/20">
       
-      {/* HEADER SECTION - CLON EXACTO DE LANDING */}
+      {/* HEADER SECTION */}
       <header className="pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8B1F32]/10 text-[#8B1F32] font-semibold text-xs uppercase tracking-wider shadow-sm">
           <Sparkles className="w-3.5 h-3.5" />
           Estudio de Canciones Personalizadas Inolvidables
         </div>
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-neutral-900 tracking-tight leading-[1.1]">
-          Crea tu canción inolvidable y <br className="hidden sm:block" />
-          <span className="text-[#8B1F32]">emociona para siempre</span>
+          Transforma tu historia en una <br className="hidden sm:block" />
+          <span className="text-[#8B1F32]">canción inolvidable</span>
         </h1>
         <p className="text-lg text-neutral-600 max-w-xl mx-auto leading-relaxed">
-          Cuéntanos tus mejores recuerdos y anécdotas, selecciona tu estilo de música predilecto y nuestro estudio boutique compondrá una pieza maestra exclusiva.
+          Regala emociones eternas. Cuéntanos tus mejores recuerdos y nuestro estudio boutique compondrá una pieza maestra exclusiva para esa persona especial.
         </p>
         
-        {/* Franja de estrellas / Prueba social integrada sutilmente */}
+        <div className="pt-6 pb-2">
+          <Button 
+            onClick={() => document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="h-14 px-10 rounded-full text-base font-bold shadow-xl bg-[#8B1F32] hover:bg-[#731929] shadow-[#8B1F32]/25 text-white transition-all transform hover:-translate-y-0.5 active:scale-95"
+          >
+            Crear mi canción ahora
+          </Button>
+        </div>
+
         <div className="pt-4 flex items-center justify-center gap-2 text-neutral-700 text-sm font-medium">
           <div className="flex text-[#8B1F32]">
             {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4" fill="currentColor" />)}
@@ -412,29 +401,29 @@ export default function CreaTuCancion() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 pb-20 sm:px-6 lg:px-8">
+      <main id="form-section" className="max-w-6xl mx-auto px-4 pb-20 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
-          {/* FORM COLUMN - PASOS ADAPTADOS */}
+          {/* FORM COLUMN */}
           <form onSubmit={handleSubmit} className="space-y-8">
             
-            {/* PASO 1: CUÉNTANOS TU HISTORIA */}
+            {/* PASO 1 */}
             <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover:opacity-10 pointer-events-none">
-                <Music className="w-24 h-24 text-[#8B1F32]" />
+                <BookOpen className="w-24 h-24 text-[#8B1F32]" />
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 relative z-10">
                 <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0">
                   1
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-neutral-900">Paso 1: Tu Historia y Sentimiento</h2>
-                  <p className="text-sm text-neutral-500">Inspira la letra de tu canción única.</p>
+                  <h2 className="text-xl font-bold text-neutral-900">Paso 1: Cuenta tu historia</h2>
+                  <p className="text-sm text-neutral-500">Detalles y anécdotas que inspirarán la letra.</p>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-5 relative z-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -554,15 +543,18 @@ export default function CreaTuCancion() {
               </div>
             </div>
 
-            {/* PASO 2: PERSONALIZACIÓN VISUAL */}
+            {/* PASO 2 */}
             <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover:opacity-10 pointer-events-none">
+                <Music className="w-24 h-24 text-[#8B1F32]" />
+              </div>
               <div className="absolute -top-1 -right-1 w-24 h-24 pointer-events-none z-10">
                 <div className="absolute top-[20px] right-[-28px] w-[130px] py-1 bg-[#8B1F32] text-white text-[9px] font-bold uppercase tracking-[0.2em] text-center rotate-45 shadow-lg shadow-[#8B1F32]/20 border-y border-white/20">
                   Premium
                 </div>
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 relative z-10">
                 <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0 relative">
                   2
                   <div className="absolute -top-1 -left-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-neutral-100">
@@ -571,14 +563,14 @@ export default function CreaTuCancion() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-                    Paso 2: Portada y Estética Visual
+                    Paso 2: Composición Premium
                     <Heart className="w-4 h-4 text-[#8B1F32] fill-[#8B1F32]/10" />
                   </h2>
-                  <p className="text-sm text-neutral-500">Diseña el arte de fondo para el reproductor.</p>
+                  <p className="text-sm text-neutral-500">Músicos y cantantes reales en el estudio.</p>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-5 relative z-10">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Plantilla Artística del Álbum</Label>
                   {renderTemplateSelector()}
@@ -668,25 +660,29 @@ export default function CreaTuCancion() {
               </div>
             </div>
 
-            {/* PASO 3: DATOS DE ENTREGA */}
-            <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6">
-              <div className="flex items-center gap-4">
+            {/* PASO 3 */}
+            <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 transition-opacity group-hover:opacity-10 pointer-events-none">
+                <Headphones className="w-24 h-24 text-[#8B1F32]" />
+              </div>
+
+              <div className="flex items-center gap-4 relative z-10">
                 <div className="w-10 h-10 rounded-full bg-[#8B1F32] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#8B1F32]/20 shrink-0">
                   3
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-neutral-900">Paso 3: Envío de la Obra</h2>
-                  <p className="text-sm text-neutral-500">¿A qué WhatsApp remitimos la composición terminada?</p>
+                  <h2 className="text-xl font-bold text-neutral-900">Paso 3: Recibe tu obra maestra</h2>
+                  <p className="text-sm text-neutral-500">Audio en alta calidad listo para dedicar.</p>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-5 relative z-10">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Número de WhatsApp (con código de país)</Label>
                   <Input
                     value={whatsappNumber}
                     onChange={e => setWhatsappNumber(e.target.value)}
-                    placeholder="Ej. 51999888777"
+                    placeholder="Ej. +34 600 000 000"
                     className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
                     type="tel"
                   />
@@ -714,14 +710,14 @@ export default function CreaTuCancion() {
               </div>
             </div>
             
-            {/* BLOQUE DE TESTIMONIOS ADAPTADO AL ESTILO DE LA LANDING */}
+            {/* BLOQUE DE TESTIMONIOS */}
             <div className="bg-white/40 p-6 rounded-3xl border border-[#8B1F32]/10 space-y-4">
               <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider flex items-center gap-1.5">
-                <CheckCircle className="w-4 h-4 text-[#8B1F32]" /> Reseñas de Clientes Satisfechos
+                <CheckCircle className="w-4 h-4 text-[#8B1F32]" /> Historias Reales
               </h3>
               <div className="space-y-3 text-xs text-neutral-600 italic">
-                <p className="border-l-2 border-[#8B1F32] pl-3">"Lloramos juntos al escuchar nuestra historia cantada con tanta sensibilidad en piano de cola. ¡El mejor regalo posible!" - María G.</p>
-                <p className="border-l-2 border-[#8B1F32] pl-3">"La nitidez técnica y los arreglos de voces profesionales superaron todas mis expectativas. Súper recomendados." - Roberto D.</p>
+                <p className="border-l-2 border-[#8B1F32] pl-3">"Lloré de emoción al regalarle esta canción a mi esposa por nuestro aniversario. Las voces y la letra capturaron exactamente todo lo que siento. ¡El mejor regalo posible!" - Carlos M.</p>
+                <p className="border-l-2 border-[#8B1F32] pl-3">"Le regalé una canción a mi madre por su cumpleaños y no paraba de llorar. Es el mejor detalle y recuerdo que he podido darle en toda mi vida." - Sofía R.</p>
               </div>
             </div>
           </form>
@@ -745,7 +741,7 @@ export default function CreaTuCancion() {
               <div ref={previewContainerRef} className="rounded-[32px] overflow-hidden bg-neutral-950 aspect-[9/16] shadow-inner relative">
                 <VideoEditorPreview
                   config={constructedConfig}
-                  onUpdateConfig={() => {}} // Read-only for landing layout
+                  onUpdateConfig={() => {}} 
                   backgroundUrl={backgroundUrl}
                   customBackground=""
                   userPhotoUrl={userPhotoUrl}
@@ -795,6 +791,49 @@ export default function CreaTuCancion() {
           </div>
 
         </div>
+
+        {/* GALERÍA DE CATEGORÍAS (Adicionado manteniendo las clases premium de Landing) */}
+        <div className="mt-20 space-y-8">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-serif font-bold text-neutral-900">Categorías Musicales</h2>
+            <p className="text-neutral-500">Explora los estilos que podemos crear para ti</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { title: 'Romántico', icon: <Heart className="w-8 h-8 text-[#8B1F32]" /> },
+              { title: 'Aniversario', icon: <Star className="w-8 h-8 text-[#8B1F32]" /> },
+              { title: 'Cumpleaños', icon: <Music className="w-8 h-8 text-[#8B1F32]" /> },
+              { title: 'Familia', icon: <BookOpen className="w-8 h-8 text-[#8B1F32]" /> },
+            ].map(cat => (
+              <div key={cat.title} className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md flex flex-col items-center justify-center gap-4 text-center group hover:border-[#8B1F32]/40 transition-all cursor-pointer">
+                <div className="w-16 h-16 rounded-full bg-[#F5EADC]/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  {cat.icon}
+                </div>
+                <h3 className="font-bold text-neutral-900">{cat.title}</h3>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ (Adicionado manteniendo las clases premium de Landing) */}
+        <div className="mt-20 space-y-8 max-w-3xl mx-auto">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-serif font-bold text-neutral-900">Preguntas Frecuentes</h2>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border border-[#8B1F32]/15 shadow-md space-y-6">
+            {[
+              { q: '¿Cuánto tarda en estar lista la canción?', a: 'El proceso completo toma entre 3 a 5 días hábiles. Nuestros productores trabajan de forma meticulosa para asegurar la máxima calidad de estudio.' },
+              { q: '¿Puedo elegir el género musical?', a: '¡Por supuesto! En el formulario de arriba puedes seleccionar el estilo que prefieras: balada, pop latino, reggaeton romántico, salsa y muchos más.' },
+              { q: '¿Qué formato entregan?', a: 'Te enviamos tu canción maestra en formatos de alta fidelidad (MP3 y WAV), para que puedas reproducirla en cualquier dispositivo o evento especial sin perder calidad.' }
+            ].map((faq, idx) => (
+              <div key={idx} className="border-b border-neutral-100 pb-4 last:border-0 last:pb-0">
+                <h4 className="font-bold text-neutral-900 mb-2">{faq.q}</h4>
+                <p className="text-sm text-neutral-600 leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </main>
       
       {/* FOOTER BRanding */}
@@ -821,7 +860,6 @@ export default function CreaTuCancion() {
       <AnimatePresence>
         {isPreviewOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -829,7 +867,6 @@ export default function CreaTuCancion() {
               onClick={() => setIsPreviewOpen(false)}
               className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-[60] lg:hidden"
             />
-            {/* Drawer */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
