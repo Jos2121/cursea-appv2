@@ -472,35 +472,37 @@ export default function Dashboard() {
       let currentJobId = studioJobId;
 
       // PASO 1: OBTENER EL AUDIO
-      if (studioMode === 'create') {
-        const resAudio = await fetch('/api/manual/audio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, whatsappNumber })
-        });
-        const dataAudio = await resAudio.json();
-        
-        if (!resAudio.ok) throw new Error(dataAudio.message || 'Error al generar audio en OpenRouter');
-        
-        currentJobId = dataAudio.job.id;
-        setStudioJobId(currentJobId);
-        setStudioAudioUrl(dataAudio.job.audioUrl);
-      } else if (studioMode === 'upload') {
-        const formData = new FormData();
-        formData.append('audioFile', selectedAudioFile);
-        if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
-        
-        const resUpload = await fetch('/api/manual/upload', {
-          method: 'POST',
-          body: formData
-        });
-        const dataUpload = await resUpload.json();
-        
-        if (!resUpload.ok) throw new Error(dataUpload.message || 'Error al subir el archivo');
-        
-        currentJobId = dataUpload.job.id;
-        setStudioJobId(currentJobId);
-        setStudioAudioUrl(dataUpload.job.audioUrl);
+      if (!currentJobId) {
+        if (studioMode === 'create') {
+          const resAudio = await fetch('/api/manual/audio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, whatsappNumber })
+          });
+          const dataAudio = await resAudio.json();
+          
+          if (!resAudio.ok) throw new Error(dataAudio.message || 'Error al generar audio en OpenRouter');
+          
+          currentJobId = dataAudio.job?.id || dataAudio.id || dataAudio.jobId;
+          setStudioJobId(currentJobId);
+          setStudioAudioUrl(dataAudio.job?.audioUrl || dataAudio.audioUrl);
+        } else if (studioMode === 'upload') {
+          const formData = new FormData();
+          formData.append('audioFile', selectedAudioFile!);
+          if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
+          
+          const resUpload = await fetch('/api/manual/upload', {
+            method: 'POST',
+            body: formData
+          });
+          const dataUpload = await resUpload.json();
+          
+          if (!resUpload.ok) throw new Error(dataUpload.message || 'Error al subir el archivo');
+          
+          currentJobId = dataUpload.job?.id || dataUpload.id || dataUpload.jobId;
+          setStudioJobId(currentJobId);
+          setStudioAudioUrl(dataUpload.job?.audioUrl || dataUpload.audioUrl);
+        }
       }
 
       if (!currentJobId) {
@@ -528,11 +530,13 @@ export default function Dashboard() {
       if (!resVideo.ok) throw new Error(dataVideo.message || 'Error al generar el video');
 
       if (dataVideo.job) {
-        setStudioVideoUrl(dataVideo.job.videoUrl);
+        setStudioVideoUrl(dataVideo.job.videoUrl || dataVideo.videoUrl);
+      } else if (dataVideo.videoUrl) {
+        setStudioVideoUrl(dataVideo.videoUrl);
       }
 
       // PASO 3: ACTUALIZAR HISTORIAL Y UI
-      fetchJobs();
+      await fetchJobs();
       setStudioStep(3);
       toast.success('¡Proceso completado exitosamente!');
 
