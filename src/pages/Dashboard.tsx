@@ -461,8 +461,8 @@ export default function Dashboard() {
     }
     
     const finalBg = backgroundUrl === 'custom' ? customBackground : backgroundUrl;
-    if (!whatsappNumber || !finalBg || !userPhotoUrl || !titulo || !artista) {
-      toast.error('Por favor, completa todos los campos requeridos (Número, Fondo, Portada, etc).');
+    if (!whatsappNumber || !userPhotoUrl || !titulo || !artista) {
+      toast.error('Por favor, completa todos los campos requeridos (Número, Portada, Título, Artista).');
       return;
     }
 
@@ -472,7 +472,7 @@ export default function Dashboard() {
       console.log("Iniciando proceso...");
       let currentJobId = studioJobId;
 
-      if (!currentJobId || studioMode === 'upload') {
+      if (!currentJobId) {
         if (studioMode === 'create') {
           console.log("Creando canción con OpenRouter...");
           const resAudio = await fetch('/api/manual/audio', {
