@@ -472,6 +472,11 @@ export default function Dashboard() {
       console.log("Iniciando proceso...");
       let currentJobId = studioJobId;
 
+      // NUEVO: Forzar ID nuevo si el flujo anterior ya se completó
+      if (studioStep === 3) {
+        currentJobId = null;
+      }
+
       if (!currentJobId) {
         if (studioMode === 'create') {
           console.log("Creando canción con OpenRouter...");
