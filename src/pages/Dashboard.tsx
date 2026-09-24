@@ -639,7 +639,7 @@ export default function Dashboard() {
         <span className="text-[10px] text-neutral-400 uppercase font-bold">X:</span>
         <input
           type="number"
-          value={config[key].x === 'center' ? '' : config[key].x}
+          value={config[key].align === 'center' ? '' : config[key].x}
           onChange={(e) => setConfig({...config, [key]: {...config[key], x: Number(e.target.value), align: 'left'}})}
           className="w-16 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
           placeholder="Ctr"
