@@ -111,9 +111,20 @@ export default function Dashboard() {
   const [regenerateTitulo, setRegenerateTitulo] = useState('');
   const [regenerateArtista, setRegenerateArtista] = useState('');
   const [regenerateDedicatoria, setRegenerateDedicatoria] = useState('');
-  const [regenerateDedicatoriaSize, setRegenerateDedicatoriaSize] = useState(28); 
+  const [regenerateDedicatoriaSize, setRegenerateDedicatoriaSize] = useState(28);
   const [regenerateTemplateConfig, setRegenerateTemplateConfig] = useState<TemplateConfig>(DEFAULT_TEMPLATE);
   const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Template Modal State
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templateBgUrl, setTemplateBgUrl] = useState('');
+  const [templateCustomBg, setTemplateCustomBg] = useState('');
+  const [templateUserPhotoUrl, setTemplateUserPhotoUrl] = useState('');
+  const [templateTitulo, setTemplateTitulo] = useState('');
+  const [templateArtista, setTemplateArtista] = useState('');
+  const [templateDedicatoria, setTemplateDedicatoria] = useState('');
+  const [templateDedicatoriaSize, setTemplateDedicatoriaSize] = useState(28);
+  const [templateConfig, setTemplateConfig] = useState<TemplateConfig>(DEFAULT_TEMPLATE);
   
   // Combobox and Modals State
   const [isRegenAddBgModalOpen, setIsRegenAddBgModalOpen] = useState(false);
@@ -758,14 +769,14 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => {
-              setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
-              setRegenerateBgUrl('');
-              setRegenerateCustomBg('');
-              setRegenerateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
-              setRegenerateTitulo('Título Muestra');
-              setRegenerateArtista('Artista Muestra');
-              setRegenerateDedicatoria('Dedicatoria de muestra...');
-              setIsRegenerateModalOpen(true);
+              setTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+              setTemplateBgUrl('');
+              setTemplateCustomBg('');
+              setTemplateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
+              setTemplateTitulo('Título Muestra');
+              setTemplateArtista('Artista Muestra');
+              setTemplateDedicatoria('Dedicatoria de muestra...');
+              setIsTemplateModalOpen(true);
             }}
             className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
           >
@@ -1191,8 +1202,8 @@ export default function Dashboard() {
               <div className="flex-1 p-8 space-y-6">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-serif font-bold text-neutral-900 flex items-center gap-2">
-                    {regenerateJobId ? <Sparkles className="w-6 h-6 text-[#8B1F32]" /> : <ImagePlus className="w-6 h-6 text-[#8B1F32]" />}
-                    {regenerateJobId ? "Renderizado Especial" : "Crear Nueva Plantilla"}
+                    <Sparkles className="w-6 h-6 text-[#8B1F32]" />
+                    Renderizado Especial
                   </DialogTitle>
                 </DialogHeader>
 
@@ -1210,7 +1221,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className={`grid ${regenerateJobId ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Fondo (URL)</Label>
                       <Input
@@ -1220,85 +1231,64 @@ export default function Dashboard() {
                         className="rounded-xl border-neutral-200 text-xs h-10"
                       />
                     </div>
-                    {regenerateJobId && (
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL)</Label>
-                        <Input
-                          value={regenerateUserPhotoUrl}
-                          onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="rounded-xl border-neutral-200 text-xs h-10"
-                        />
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL)</Label>
+                      <Input
+                        value={regenerateUserPhotoUrl}
+                        onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="rounded-xl border-neutral-200 text-xs h-10"
+                      />
+                    </div>
                   </div>
                   {renderPhotoControls(regenerateTemplateConfig, setRegenerateTemplateConfig)}
 
-                  <div className={`grid ${regenerateJobId ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
-                      {regenerateJobId && (
-                        <Input
-                          value={regenerateTitulo}
-                          onChange={(e) => setRegenerateTitulo(e.target.value)}
-                          placeholder="Nombre..."
-                          className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
-                        />
-                      )}
+                      <Input
+                        value={regenerateTitulo}
+                        onChange={(e) => setRegenerateTitulo(e.target.value)}
+                        placeholder="Nombre..."
+                        className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                      />
                       {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'titulo')}
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
-                      {regenerateJobId && (
-                        <Input
-                          value={regenerateArtista}
-                          onChange={(e) => setRegenerateArtista(e.target.value)}
-                          placeholder="Artista..."
-                          className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
-                        />
-                      )}
+                      <Input
+                        value={regenerateArtista}
+                        onChange={(e) => setRegenerateArtista(e.target.value)}
+                        placeholder="Artista..."
+                        className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                      />
                       {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'artista')}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria</Label>
-                    {regenerateJobId && (
-                      <Textarea
-                        value={regenerateDedicatoria}
-                        onChange={(e) => setRegenerateDedicatoria(e.target.value)}
-                        placeholder="Mensaje..."
-                        rows={2}
-                        className="rounded-xl border-neutral-200 text-xs resize-none mb-2"
-                      />
-                    )}
+                    <Textarea
+                      value={regenerateDedicatoria}
+                      onChange={(e) => setRegenerateDedicatoria(e.target.value)}
+                      placeholder="Mensaje..."
+                      rows={2}
+                      className="rounded-xl border-neutral-200 text-xs resize-none mb-2"
+                    />
                     {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'dedicatoria', regenerateDedicatoriaSize, setRegenerateDedicatoriaSize)}
                   </div>
                 </div>
 
                 <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
                   <Button variant="ghost" onClick={() => setIsRegenerateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-                  {regenerateJobId ? (
-                    <Button
-                      onClick={handleRegenerateVideo}
-                      disabled={isRegenerating}
-                      className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
-                    >
-                      {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
-                      Comenzar Render
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
-                        setIsRegenerateModalOpen(false);
-                      }}
-                      className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
-                    >
-                      <ImagePlus className="w-4 h-4 mr-2" />
-                      Crear Plantilla
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleRegenerateVideo}
+                    disabled={isRegenerating}
+                    className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                  >
+                    {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                    Comenzar Render
+                  </Button>
                 </DialogFooter>
               </div>
 
@@ -1315,6 +1305,99 @@ export default function Dashboard() {
                     artista={regenerateArtista}
                     dedicatoria={regenerateDedicatoria}
                     dedicatoriaSize={regenerateDedicatoriaSize}
+                    scale={0.185}
+                  />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Template Modal */}
+        <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+          <DialogContent className="bg-[#F5EADC] border-none text-neutral-900 max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl p-0">
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Form Side */}
+              <div className="flex-1 p-8 space-y-6">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-serif font-bold text-neutral-900 flex items-center gap-2">
+                    <ImagePlus className="w-6 h-6 text-[#8B1F32]" />
+                    Crear Nueva Plantilla
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Plantilla Base</Label>
+                    {renderTemplateSelector(
+                      templateConfig.id,
+                      setTemplateConfig,
+                      setTemplateBgUrl,
+                      setTemplateCustomBg,
+                      setTemplateUserPhotoUrl,
+                      false,
+                      setTemplateDedicatoriaSize
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Fondo (URL)</Label>
+                      <Input
+                        value={templateBgUrl === 'custom' ? templateCustomBg : templateBgUrl}
+                        onChange={(e) => { setTemplateBgUrl('custom'); setTemplateCustomBg(e.target.value); }}
+                        placeholder="https://..."
+                        className="rounded-xl border-neutral-200 text-xs h-10"
+                      />
+                    </div>
+                  </div>
+                  {renderPhotoControls(templateConfig, setTemplateConfig)}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
+                      {renderConfigControls(templateConfig, setTemplateConfig, 'titulo')}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
+                      {renderConfigControls(templateConfig, setTemplateConfig, 'artista')}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria</Label>
+                    {renderConfigControls(templateConfig, setTemplateConfig, 'dedicatoria', templateDedicatoriaSize, setTemplateDedicatoriaSize)}
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
+                  <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+                  <Button
+                    onClick={() => {
+                      handleSaveTemplate(templateConfig, templateBgUrl === 'custom' ? templateCustomBg : templateBgUrl, templateDedicatoriaSize, 'completa');
+                      setIsTemplateModalOpen(false);
+                    }}
+                    className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                  >
+                    <ImagePlus className="w-4 h-4 mr-2" />
+                    Crear Plantilla
+                  </Button>
+                </DialogFooter>
+              </div>
+
+              {/* Preview Side */}
+              <div className="bg-white p-8 flex flex-col items-center justify-center border-l border-neutral-50 w-full md:w-[320px]">
+                <div className="w-[200px] h-[355px] rounded-[32px] overflow-hidden bg-neutral-950 shadow-2xl relative">
+                  <VideoEditorPreview
+                    config={templateConfig}
+                    onUpdateConfig={setTemplateConfig}
+                    backgroundUrl={templateBgUrl}
+                    customBackground={templateCustomBg}
+                    userPhotoUrl={templateUserPhotoUrl}
+                    titulo={templateTitulo}
+                    artista={templateArtista}
+                    dedicatoria={templateDedicatoria}
+                    dedicatoriaSize={templateDedicatoriaSize}
                     scale={0.185}
                   />
                 </div>
