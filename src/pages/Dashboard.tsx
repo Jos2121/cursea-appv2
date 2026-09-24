@@ -493,7 +493,7 @@ export default function Dashboard() {
           formData.append('audioFile', selectedAudioFile!);
           if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
           
-          const resUpload = await fetch('/api/public/upload', {
+          const resUpload = await fetch('/api/manual/upload', {
             method: 'POST',
             body: formData
           });
