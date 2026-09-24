@@ -287,7 +287,7 @@ export default function Landing() {
         return;
       }
 
-      const text = encodeURIComponent(`Listo! he llenado el formulario para crear mi cancion personalizada, brindame los metodos de pago\n\nMi numero de peticion es: ${whatsappNumber}`);
+      const text = encodeURIComponent(`¡Listo! He llenado el formulario para crear mi canción personalizada. Bríndame los métodos de pago.\n\nMi número de petición es: ${whatsappNumber}`);
       window.location.href = `https://wa.me/${cleanNumber}?text=${text}`;
       
     } catch (error: any) {
