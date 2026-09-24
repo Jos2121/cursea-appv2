@@ -136,6 +136,8 @@ export default function Dashboard() {
   const [studioStep, setStudioStep] = useState(1);
   const [studioJobId, setStudioJobId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
+  const [studioMode, setStudioMode] = useState<'create' | 'upload'>('create');
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   
   // Studio Step 2 (Video Player 9:16 fields)
   const [backgroundUrl, setBackgroundUrl] = useState('');
@@ -447,60 +449,93 @@ export default function Dashboard() {
   };
 
   // Studio Handlers
-  const handleGenerateAudio = async () => {
-    if (!prompt) return;
-    setIsProcessing(true);
-    try {
-      const res = await fetch('/api/manual/audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const data = await res.json();
-      if (data.job) {
-        setStudioJobId(data.job.id);
-        setStudioAudioUrl(data.job.audioUrl);
-        setStudioStep(2);
-        toast.success('Audio generado');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Error al generar audio');
-    } finally {
-      setIsProcessing(false);
+  const handleSubmit = async () => {
+    if (studioMode === 'create' && !prompt) {
+      toast.error('Por favor, ingresa un prompt para generar la canción.');
+      return;
     }
-  };
-
-  const handleGenerateVideo = async () => {
-    const finalBg = backgroundUrl === 'custom' ? customBackground : backgroundUrl;
-    if (!finalBg || !userPhotoUrl || !titulo || !artista || !studioJobId) return;
+    if (studioMode === 'upload' && !selectedAudioFile) {
+      toast.error('Por favor, selecciona un archivo de audio.');
+      return;
+    }
     
+    const finalBg = backgroundUrl === 'custom' ? customBackground : backgroundUrl;
+    if (!finalBg || !userPhotoUrl || !titulo || !artista) {
+      toast.error('Por favor, completa todos los campos del video.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      const res = await fetch('/api/manual/video', {
+      let currentJobId = studioJobId;
+
+      // PASO 1: OBTENER EL AUDIO
+      if (studioMode === 'create') {
+        const resAudio = await fetch('/api/manual/audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const dataAudio = await resAudio.json();
+        
+        if (!resAudio.ok) throw new Error(dataAudio.message || 'Error al generar audio en OpenRouter');
+        
+        currentJobId = dataAudio.job.id;
+        setStudioJobId(currentJobId);
+        setStudioAudioUrl(dataAudio.job.audioUrl);
+      } else if (studioMode === 'upload') {
+        const formData = new FormData();
+        formData.append('audioFile', selectedAudioFile);
+        
+        const resUpload = await fetch('/api/manual/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const dataUpload = await resUpload.json();
+        
+        if (!resUpload.ok) throw new Error(dataUpload.message || 'Error al subir el archivo');
+        
+        currentJobId = dataUpload.job.id;
+        setStudioJobId(currentJobId);
+        setStudioAudioUrl(dataUpload.job.audioUrl);
+      }
+
+      if (!currentJobId) {
+        throw new Error('No se pudo obtener un ID de trabajo válido');
+      }
+
+      // PASO 2: GENERAR VIDEO
+      const resVideo = await fetch('/api/manual/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jobId: studioJobId,
+          jobId: currentJobId,
           backgroundUrl: finalBg,
           userPhotoUrl,
           titulo,
           artista,
           dedicatoria,
+          dedicatoriaSize,
           templateConfig: studioTemplateConfig
         })
       });
-      const data = await res.json();
-      if (res.ok && data.job) {
-        setStudioVideoUrl(data.job.videoUrl);
-        toast.success('Video generado');
-      } else {
-        toast.error(`Error al generar video: ${data.statusMessage || data.message || 'Unknown error'}`);
+
+      const dataVideo = await resVideo.json();
+      if (!resVideo.ok) throw new Error(dataVideo.message || 'Error al generar el video');
+
+      if (dataVideo.job) {
+        setStudioVideoUrl(dataVideo.job.videoUrl);
       }
-    } catch (err) {
+
+      // PASO 3: ACTUALIZAR HISTORIAL Y UI
+      fetchJobs();
+      setStudioStep(3);
+      toast.success('¡Proceso completado exitosamente!');
+
+    } catch (err: any) {
       console.error(err);
-      toast.error('Error: Network error occurred');
+      toast.error(`Error: ${err.message || 'Ocurrió un error inesperado'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -1031,8 +1066,8 @@ export default function Dashboard() {
                   <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider mt-1">Producción Paso a Paso</p>
                 </div>
                 {studioJobId && (
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={handleResetStudio}
                     className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-[#8B1F32]"
@@ -1042,51 +1077,95 @@ export default function Dashboard() {
                 )}
               </div>
               
-              {/* Step 1 */}
-              <div className={`space-y-4 relative ${studioStep === 1 ? 'opacity-100 scale-100' : 'opacity-40 scale-[0.98] pointer-events-none'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                    studioStep >= 1 ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20' : 'bg-neutral-100 text-neutral-400'
-                  }`}>
-                    1
-                  </div>
-                  <h3 className="text-md font-bold text-neutral-800">Generación de Audio</h3>
-                </div>
-                
-                <div className="space-y-4 pl-11">
-                  <Textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    disabled={studioStep !== 1 || isProcessing}
-                    placeholder="Describe el estilo y letra para generar la canción..."
-                    className="w-full rounded-2xl border-neutral-200 focus:ring-[#8B1F32] min-h-[120px] text-sm resize-none"
+              {/* --- NUEVO: Fecha, Input Numérico y Modo --- */}
+              <div className="py-4 border-b border-neutral-50 space-y-6">
+                {/* Fecha y Número */}
+                <div>
+                  <p className="text-sm font-medium text-neutral-600 mb-2">
+                    Fecha actual: {new Date().toLocaleDateString()}
+                  </p>
+                  <input
+                    type="number"
+                    placeholder="Escribe un número..."
+                    className="w-full max-w-xs rounded-xl border border-neutral-200 p-3 text-sm focus:border-[#8B1F32] focus:ring-1 focus:ring-[#8B1F32] outline-none transition-all"
                   />
-                  {studioStep === 1 && (
+                </div>
+
+                {/* Selector de Modo */}
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-neutral-800">Modo de inicio:</p>
+                  <div className="flex gap-2">
                     <Button
-                      onClick={handleGenerateAudio}
-                      disabled={!prompt || isProcessing}
-                      className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm"
+                      variant={studioMode === 'create' ? 'default' : 'outline'}
+                      onClick={() => setStudioMode('create')}
+                      className={studioMode === 'create' ? 'bg-[#8B1F32] text-white hover:bg-[#6b1524]' : ''}
                     >
-                      {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Mic2 className="w-4 h-4 mr-2" />}
-                      Generar Audio
+                      Crear canción
                     </Button>
-                  )}
-                  {studioAudioUrl && (
-                    <div className="mt-4 p-4 bg-[#F5EADC]/20 rounded-2xl border border-[#8B1F32]/10">
-                      <p className="text-[10px] font-bold uppercase text-[#8B1F32] tracking-widest mb-3">Audio Pre-Producido:</p>
-                      <audio controls className="w-full h-8 opacity-90" src={studioAudioUrl}></audio>
+                    <Button
+                      variant={studioMode === 'upload' ? 'default' : 'outline'}
+                      onClick={() => setStudioMode('upload')}
+                      className={studioMode === 'upload' ? 'bg-[#8B1F32] text-white hover:bg-[#6b1524]' : ''}
+                    >
+                      Subir audio
+                    </Button>
+                  </div>
+
+                  {/* Input de archivo condicional */}
+                  {studioMode === 'upload' && (
+                    <div className="mt-4 p-5 border border-dashed border-neutral-300 rounded-xl bg-neutral-50/50">
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Selecciona tu archivo de audio:
+                      </label>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => setSelectedAudioFile(e.target.files?.[0] || null)}
+                        className="block w-full text-sm text-neutral-500
+                          file:mr-4 file:py-2.5 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-[#8B1F32]/10 file:text-[#8B1F32]
+                          hover:file:bg-[#8B1F32]/20 cursor-pointer"
+                      />
                     </div>
                   )}
                 </div>
               </div>
+              
+              {/* Step 1: Prompt (Solo si es "create") */}
+              {studioMode === 'create' && (
+                <div className="space-y-4 relative">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20">
+                      1
+                    </div>
+                    <h3 className="text-md font-bold text-neutral-800">Generación de Audio</h3>
+                  </div>
+                  
+                  <div className="space-y-4 pl-11">
+                    <Textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      disabled={isProcessing}
+                      placeholder="Describe el estilo y letra para generar la canción..."
+                      className="w-full rounded-2xl border-neutral-200 focus:ring-[#8B1F32] min-h-[120px] text-sm resize-none"
+                    />
+                    {studioAudioUrl && (
+                      <div className="mt-4 p-4 bg-[#F5EADC]/20 rounded-2xl border border-[#8B1F32]/10">
+                        <p className="text-[10px] font-bold uppercase text-[#8B1F32] tracking-widest mb-3">Audio Pre-Producido:</p>
+                        <audio controls className="w-full h-8 opacity-90" src={studioAudioUrl}></audio>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              {/* Step 2 */}
-              <div className={`space-y-6 relative ${studioStep === 2 ? 'opacity-100 scale-100' : 'opacity-40 scale-[0.98] pointer-events-none'}`}>
+              {/* Step 2: Renderizado */}
+              <div className="space-y-6 relative">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                    studioStep >= 2 ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20' : 'bg-neutral-100 text-neutral-400'
-                  }`}>
-                    2
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20">
+                    {studioMode === 'create' ? '2' : '1'}
                   </div>
                   <h3 className="text-md font-bold text-neutral-800">Renderizado de Video</h3>
                 </div>
@@ -1114,7 +1193,7 @@ export default function Dashboard() {
                         setBackgroundUrl('custom');
                         setCustomBackground(e.target.value);
                       }}
-                      disabled={studioStep !== 2 || isProcessing}
+                      disabled={isProcessing}
                       placeholder="https://..."
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
                     />
@@ -1126,7 +1205,7 @@ export default function Dashboard() {
                       type="url"
                       value={userPhotoUrl}
                       onChange={(e) => setUserPhotoUrl(e.target.value)}
-                      disabled={studioStep !== 2 || isProcessing}
+                      disabled={isProcessing}
                       placeholder="https://..."
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
                     />
@@ -1139,7 +1218,7 @@ export default function Dashboard() {
                       <Input
                         value={titulo}
                         onChange={(e) => setTitulo(e.target.value)}
-                        disabled={studioStep !== 2 || isProcessing}
+                        disabled={isProcessing}
                         placeholder="Canción..."
                         className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
                       />
@@ -1150,7 +1229,7 @@ export default function Dashboard() {
                       <Input
                         value={artista}
                         onChange={(e) => setArtista(e.target.value)}
-                        disabled={studioStep !== 2 || isProcessing}
+                        disabled={isProcessing}
                         placeholder="Nombre..."
                         className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
                       />
@@ -1163,7 +1242,7 @@ export default function Dashboard() {
                     <Textarea
                       value={dedicatoria}
                       onChange={(e) => setDedicatoria(e.target.value)}
-                      disabled={studioStep !== 2 || isProcessing}
+                      disabled={isProcessing}
                       placeholder="Mensaje corto..."
                       rows={2}
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs resize-none"
@@ -1171,16 +1250,14 @@ export default function Dashboard() {
                     {renderConfigControls(studioTemplateConfig, setStudioTemplateConfig, 'dedicatoria', dedicatoriaSize, setDedicatoriaSize)}
                   </div>
 
-                  {studioStep === 2 && (
-                    <Button
-                      onClick={handleGenerateVideo}
-                      disabled={(!userPhotoUrl || !titulo || !artista || (backgroundUrl === 'custom' && !customBackground)) || isProcessing}
-                      className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm"
-                    >
-                      {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
-                      Generar Video
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={(!userPhotoUrl || !titulo || !artista || (backgroundUrl === 'custom' && !customBackground)) || isProcessing}
+                    className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm mt-4"
+                  >
+                    {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                    Procesar y Generar Video
+                  </Button>
                 </div>
               </div>
             </div>
