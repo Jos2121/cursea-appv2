@@ -469,11 +469,12 @@ export default function Dashboard() {
     setIsProcessing(true);
 
     try {
+      console.log("Iniciando proceso...");
       let currentJobId = studioJobId;
 
-      // PASO 1: OBTENER EL AUDIO
-      if (!currentJobId) {
+      if (!currentJobId || studioMode === 'upload') {
         if (studioMode === 'create') {
+          console.log("Creando canción con OpenRouter...");
           const resAudio = await fetch('/api/manual/audio', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -487,6 +488,7 @@ export default function Dashboard() {
           setStudioJobId(currentJobId);
           setStudioAudioUrl(dataAudio.job?.audioUrl || dataAudio.audioUrl);
         } else if (studioMode === 'upload') {
+          console.log("Subiendo archivo de audio local...");
           const formData = new FormData();
           formData.append('audioFile', selectedAudioFile!);
           if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
@@ -495,21 +497,23 @@ export default function Dashboard() {
             method: 'POST',
             body: formData
           });
+          
           const dataUpload = await resUpload.json();
+          console.log("Respuesta de subida:", dataUpload);
           
           if (!resUpload.ok) throw new Error(dataUpload.message || 'Error al subir el archivo');
           
-          currentJobId = dataUpload.job?.id || dataUpload.id || dataUpload.jobId;
+          currentJobId = dataUpload.job?.id || dataUpload.id || dataUpload.jobId || dataUpload.mediaJob?.id;
           setStudioJobId(currentJobId);
-          setStudioAudioUrl(dataUpload.job?.audioUrl || dataUpload.audioUrl);
+          setStudioAudioUrl(dataUpload.job?.audioUrl || dataUpload.audioUrl || dataUpload.mediaJob?.audioUrl);
         }
       }
 
       if (!currentJobId) {
-        throw new Error('No se pudo obtener un ID de trabajo válido');
+        throw new Error('El servidor recibió el audio, pero no devolvió un ID de trabajo válido para generar el video.');
       }
 
-      // PASO 2: GENERAR VIDEO
+      console.log("Generando video para el Job ID:", currentJobId);
       const resVideo = await fetch('/api/manual/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -527,6 +531,8 @@ export default function Dashboard() {
       });
 
       const dataVideo = await resVideo.json();
+      console.log("Respuesta de video:", dataVideo);
+      
       if (!resVideo.ok) throw new Error(dataVideo.message || 'Error al generar el video');
 
       if (dataVideo.job) {
@@ -535,14 +541,16 @@ export default function Dashboard() {
         setStudioVideoUrl(dataVideo.videoUrl);
       }
 
-      // PASO 3: ACTUALIZAR HISTORIAL Y UI
+      console.log("Actualizando tabla de historial...");
       await fetchJobs();
       setStudioStep(3);
       toast.success('¡Proceso completado exitosamente!');
+      
+      setActiveTab('history');
 
     } catch (err: any) {
-      console.error(err);
-      toast.error(`Error: ${err.message || 'Ocurrió un error inesperado'}`);
+      console.error("Error en la cadena de ejecución:", err);
+      toast.error(`Error: ${err.message || 'Ocurrió un error inesperado al procesar'}`);
     } finally {
       setIsProcessing(false);
     }
