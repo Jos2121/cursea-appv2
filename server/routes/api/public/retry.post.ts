@@ -338,48 +338,7 @@ async function processJob(job: any) {
   const relativeVideoUrl = `/media/${videoFileName}`;
   
   await pool.query(
-    `UPDATE "MediaJob" SET "videoUrl" = $1, status = 'video_ready', "updatedAt" = NOW() WHERE id = $2`,
+    `UPDATE "MediaJob" SET "videoUrl" = $1, status = 'completed', "updatedAt" = NOW() WHERE id = $2`,
     [relativeVideoUrl, jobId]
-  );
-
-  // 4. SEND via YCloud
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sings.inspiramkt.agency").replace(/\/$/, "");
-  const fullVideoUrl = `${appUrl}${relativeVideoUrl}`;
-  const fullAudioUrl = `${appUrl}/media/${audioFileName}`;
-  const target = job.whatsappNumber.trim();
-  const ycloudApiKey = process.env.YCLOUD_API_KEY;
-  
-  if (!ycloudApiKey) throw new Error("YCLOUD_API_KEY is not configured");
-
-  const isUsername = target.startsWith("PE.");
-  const destinationKey = isUsername ? "recipient" : "to";
-  
-  const payload: any = {
-    from: process.env.YCLOUD_FROM,
-    [destinationKey]: target,
-    type: "video",
-    video: {
-      link: fullVideoUrl,
-      caption: `¡Aquí tienes tu video del segundo intento! 🎵\n\nPuedes escuchar y descargar tu canción original desde este enlace:\n${fullAudioUrl}`
-    }
-  };
-
-  const ycloudRes = await fetch("https://api.ycloud.com/v2/whatsapp/messages/sendDirectly", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": ycloudApiKey
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!ycloudRes.ok) {
-    const errorData = await ycloudRes.json().catch(() => ({}));
-    throw new Error(errorData?.error?.message || errorData?.message || "Error al enviar mensaje por YCloud");
-  }
-
-  await pool.query(
-    'UPDATE "MediaJob" SET status = \'sent\', "updatedAt" = NOW() WHERE id = $1',
-    [jobId]
   );
 }

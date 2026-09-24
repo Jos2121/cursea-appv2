@@ -121,12 +121,6 @@ export default function Dashboard() {
   const [isStudioAddBgModalOpen, setIsStudioAddBgModalOpen] = useState(false);
   const [studioNewBgUrl, setStudioNewBgUrl] = useState('');
 
-  // WhatsApp Modal State
-  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
-  const [whatsappJobId, setWhatsappJobId] = useState<string | null>(null);
-  const [whatsappModalPhone, setWhatsappModalPhone] = useState('');
-  const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
-
   // Studio state
   const [studioStep, setStudioStep] = useState(1);
   const [studioJobId, setStudioJobId] = useState<string | null>(null);
@@ -245,8 +239,7 @@ export default function Dashboard() {
     }
   };
   
-  // Studio Step 3
-  const [phone, setPhone] = useState('');
+  // Studio State
   const [isProcessing, setIsProcessing] = useState(false);
   const [studioAudioUrl, setStudioAudioUrl] = useState<string | null>(null);
   const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
@@ -267,7 +260,6 @@ export default function Dashboard() {
         if (parsed.artista) setArtista(parsed.artista);
         if (parsed.dedicatoria) setDedicatoria(parsed.dedicatoria);
         if (parsed.dedicatoriaSize) setDedicatoriaSize(parsed.dedicatoriaSize);
-        if (parsed.phone) setPhone(parsed.phone);
         if (parsed.studioAudioUrl) setStudioAudioUrl(parsed.studioAudioUrl);
         if (parsed.studioVideoUrl) setStudioVideoUrl(parsed.studioVideoUrl);
       } catch (e) {
@@ -289,14 +281,13 @@ export default function Dashboard() {
       artista,
       dedicatoria,
       dedicatoriaSize,
-      phone,
       studioAudioUrl,
       studioVideoUrl,
     };
     localStorage.setItem('curseaDigitalStudioState', JSON.stringify(stateToSave));
   }, [
     studioStep, studioJobId, prompt, backgroundUrl, customBackground,
-    userPhotoUrl, titulo, artista, dedicatoria, dedicatoriaSize, phone, studioAudioUrl, studioVideoUrl
+    userPhotoUrl, titulo, artista, dedicatoria, dedicatoriaSize, studioAudioUrl, studioVideoUrl
   ]);
 
   const fetchJobs = async () => {
@@ -459,7 +450,6 @@ export default function Dashboard() {
       const data = await res.json();
       if (res.ok && data.job) {
         setStudioVideoUrl(data.job.videoUrl);
-        setStudioStep(3);
         toast.success('Video generado');
       } else {
         toast.error(`Error al generar video: ${data.statusMessage || data.message || 'Unknown error'}`);
@@ -469,58 +459,6 @@ export default function Dashboard() {
       toast.error('Error: Network error occurred');
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleSendWhatsapp = async () => {
-    if (!phone || !studioJobId) return;
-    setIsProcessing(true);
-    try {
-      const res = await fetch('/api/manual/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: studioJobId, whatsappNumber: phone })
-      });
-      
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toast.success('Enviado correctamente');
-        handleResetStudio();
-      } else {
-        toast.error(`Error al enviar: ${data.statusMessage || data.message || 'Unknown error'}`);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(`Error: ${err.message || 'Network error occurred'}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleSendWhatsappFromModal = async () => {
-    if (!whatsappModalPhone || !whatsappJobId) return;
-    setIsSendingWhatsapp(true);
-    try {
-      const res = await fetch('/api/manual/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: whatsappJobId, whatsappNumber: whatsappModalPhone })
-      });
-      
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setIsWhatsappModalOpen(false);
-        setWhatsappModalPhone('');
-        fetchJobs();
-        toast.success('Enviado correctamente');
-      } else {
-        toast.error(`Error al enviar: ${data.statusMessage || data.message || 'Unknown error'}`);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(`Error: ${err.message || 'Network error occurred'}`);
-    } finally {
-      setIsSendingWhatsapp(false);
     }
   };
 
@@ -534,7 +472,6 @@ export default function Dashboard() {
     setTitulo('');
     setArtista('');
     setDedicatoria('');
-    setPhone('');
     setStudioAudioUrl(null);
     setStudioVideoUrl(null);
     setStudioTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
@@ -1013,19 +950,6 @@ export default function Dashboard() {
                             <Video className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {job.videoUrl && (
-                          <button
-                            onClick={() => {
-                              setWhatsappJobId(job.id);
-                              setWhatsappModalPhone(job.whatsappNumber || job.recipient || '');
-                              setIsWhatsappModalOpen(true);
-                            }}
-                            className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-emerald-100"
-                            title="Send via WhatsApp"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         <button
                           onClick={() => handleDelete(job.id)}
                           className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-rose-100"
@@ -1201,39 +1125,6 @@ export default function Dashboard() {
                     >
                       {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
                       Generar Video
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className={`space-y-4 relative ${studioStep === 3 ? 'opacity-100 scale-100' : 'opacity-40 scale-[0.98] pointer-events-none'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                    studioStep === 3 ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20' : 'bg-neutral-100 text-neutral-400'
-                  }`}>
-                    3
-                  </div>
-                  <h3 className="text-md font-bold text-neutral-800">Envío WhatsApp</h3>
-                </div>
-                
-                <div className="space-y-4 pl-11">
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    disabled={studioStep !== 3 || isProcessing}
-                    placeholder="+34600000000"
-                    className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-sm h-12 font-mono"
-                  />
-                  {studioStep === 3 && (
-                    <Button
-                      onClick={handleSendWhatsapp}
-                      disabled={!phone || isProcessing}
-                      className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all font-bold text-sm"
-                    >
-                      {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                      Enviar Producto Final
                     </Button>
                   )}
                 </div>
@@ -1418,40 +1309,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Send WhatsApp Modal */}
-        <Dialog open={isWhatsappModalOpen} onOpenChange={setIsWhatsappModalOpen}>
-          <DialogContent className="bg-white border-none rounded-[32px] shadow-2xl p-8 max-w-sm text-neutral-900">
-            <DialogHeader className="mb-6">
-              <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                <Send className="w-5 h-5 text-emerald-500" />
-                Enviar Producto
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">WhatsApp del Cliente</Label>
-                <Input
-                  type="tel"
-                  value={whatsappModalPhone}
-                  onChange={(e) => setWhatsappModalPhone(e.target.value)}
-                  disabled={isSendingWhatsapp}
-                  placeholder="+34..."
-                  className="rounded-xl border-neutral-200 h-12 font-mono text-center"
-                />
-              </div>
-              <Button
-                onClick={handleSendWhatsappFromModal}
-                disabled={!whatsappModalPhone || isSendingWhatsapp}
-                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 font-bold transition-all"
-              >
-                {isSendingWhatsapp ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                Confirmar Envío
-              </Button>
-              <Button variant="ghost" className="w-full text-neutral-400 font-bold uppercase text-[10px]" onClick={() => setIsWhatsappModalOpen(false)}>Cancelar</Button>
             </div>
           </DialogContent>
         </Dialog>
