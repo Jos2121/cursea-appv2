@@ -1338,22 +1338,6 @@ export default function Dashboard() {
                     scale={0.185}
                   />
                 </div>
-                
-                {regenerateJobId && (
-                  <div className="mt-8 text-center space-y-4">
-                    <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Guardar Plantilla</span>
-                    <div className="flex gap-4">
-                      <button onClick={() => {
-                          handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
-                          if (!regenerateJobId) setIsRegenerateModalOpen(false);
-                        }} className="text-[10px] font-bold text-[#8B1F32] hover:underline uppercase">Completa</button>
-                      <button onClick={() => {
-                          handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'coordenadas');
-                          if (!regenerateJobId) setIsRegenerateModalOpen(false);
-                        }} className="text-[10px] font-bold text-neutral-400 hover:text-neutral-900 hover:underline uppercase">Solo Coords</button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </DialogContent>
