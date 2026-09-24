@@ -1211,8 +1211,8 @@ export default function Dashboard() {
               <div className="flex-1 p-8 space-y-6">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-serif font-bold text-neutral-900 flex items-center gap-2">
-                    <Sparkles className="w-6 h-6 text-[#8B1F32]" />
-                    Renderizado Especial
+                    {regenerateJobId ? <Sparkles className="w-6 h-6 text-[#8B1F32]" /> : <ImagePlus className="w-6 h-6 text-[#8B1F32]" />}
+                    {regenerateJobId ? "Renderizado Especial" : "Crear Nueva Plantilla"}
                   </DialogTitle>
                 </DialogHeader>
 
