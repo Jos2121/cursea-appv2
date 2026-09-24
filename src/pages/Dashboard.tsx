@@ -761,7 +761,7 @@ export default function Dashboard() {
               setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
               setRegenerateBgUrl('');
               setRegenerateCustomBg('');
-              setRegenerateUserPhotoUrl('');
+              setRegenerateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
               setRegenerateTitulo('Título Muestra');
               setRegenerateArtista('Artista Muestra');
               setRegenerateDedicatoria('Dedicatoria de muestra...');
@@ -1230,7 +1230,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={`grid ${regenerateJobId ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Fondo (URL)</Label>
                       <Input
@@ -1240,57 +1240,65 @@ export default function Dashboard() {
                         className="rounded-xl border-neutral-200 text-xs h-10"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL)</Label>
-                      <Input
-                        value={regenerateUserPhotoUrl}
-                        onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="rounded-xl border-neutral-200 text-xs h-10"
-                      />
-                    </div>
+                    {regenerateJobId && (
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL)</Label>
+                        <Input
+                          value={regenerateUserPhotoUrl}
+                          onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="rounded-xl border-neutral-200 text-xs h-10"
+                        />
+                      </div>
+                    )}
                   </div>
                   {renderPhotoControls(regenerateTemplateConfig, setRegenerateTemplateConfig)}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className={`grid ${regenerateJobId ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
-                      <Input
-                        value={regenerateTitulo}
-                        onChange={(e) => setRegenerateTitulo(e.target.value)}
-                        placeholder="Nombre..."
-                        className="rounded-xl border-neutral-200 text-xs h-10"
-                      />
+                      {regenerateJobId && (
+                        <Input
+                          value={regenerateTitulo}
+                          onChange={(e) => setRegenerateTitulo(e.target.value)}
+                          placeholder="Nombre..."
+                          className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                        />
+                      )}
                       {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'titulo')}
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
-                      <Input
-                        value={regenerateArtista}
-                        onChange={(e) => setRegenerateArtista(e.target.value)}
-                        placeholder="Artista..."
-                        className="rounded-xl border-neutral-200 text-xs h-10"
-                      />
+                      {regenerateJobId && (
+                        <Input
+                          value={regenerateArtista}
+                          onChange={(e) => setRegenerateArtista(e.target.value)}
+                          placeholder="Artista..."
+                          className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                        />
+                      )}
                       {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'artista')}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria</Label>
-                    <Textarea
-                      value={regenerateDedicatoria}
-                      onChange={(e) => setRegenerateDedicatoria(e.target.value)}
-                      placeholder="Mensaje..."
-                      rows={2}
-                      className="rounded-xl border-neutral-200 text-xs resize-none"
-                    />
+                    {regenerateJobId && (
+                      <Textarea
+                        value={regenerateDedicatoria}
+                        onChange={(e) => setRegenerateDedicatoria(e.target.value)}
+                        placeholder="Mensaje..."
+                        rows={2}
+                        className="rounded-xl border-neutral-200 text-xs resize-none mb-2"
+                      />
+                    )}
                     {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'dedicatoria', regenerateDedicatoriaSize, setRegenerateDedicatoriaSize)}
                   </div>
                 </div>
 
                 <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
                   <Button variant="ghost" onClick={() => setIsRegenerateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-                  {regenerateJobId && (
+                  {regenerateJobId ? (
                     <Button
                       onClick={handleRegenerateVideo}
                       disabled={isRegenerating}
@@ -1298,6 +1306,17 @@ export default function Dashboard() {
                     >
                       {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
                       Comenzar Render
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
+                        setIsRegenerateModalOpen(false);
+                      }}
+                      className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                    >
+                      <ImagePlus className="w-4 h-4 mr-2" />
+                      Crear Plantilla
                     </Button>
                   )}
                 </DialogFooter>
@@ -1319,19 +1338,22 @@ export default function Dashboard() {
                     scale={0.185}
                   />
                 </div>
-                <div className="mt-8 text-center space-y-4">
-                  <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Guardar Plantilla</span>
-                  <div className="flex gap-4">
-                    <button onClick={() => {
-                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
-                        if (!regenerateJobId) setIsRegenerateModalOpen(false);
-                      }} className="text-[10px] font-bold text-[#8B1F32] hover:underline uppercase">Completa</button>
-                    <button onClick={() => {
-                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'coordenadas');
-                        if (!regenerateJobId) setIsRegenerateModalOpen(false);
-                      }} className="text-[10px] font-bold text-neutral-400 hover:text-neutral-900 hover:underline uppercase">Solo Coords</button>
+                
+                {regenerateJobId && (
+                  <div className="mt-8 text-center space-y-4">
+                    <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Guardar Plantilla</span>
+                    <div className="flex gap-4">
+                      <button onClick={() => {
+                          handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
+                          if (!regenerateJobId) setIsRegenerateModalOpen(false);
+                        }} className="text-[10px] font-bold text-[#8B1F32] hover:underline uppercase">Completa</button>
+                      <button onClick={() => {
+                          handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'coordenadas');
+                          if (!regenerateJobId) setIsRegenerateModalOpen(false);
+                        }} className="text-[10px] font-bold text-neutral-400 hover:text-neutral-900 hover:underline uppercase">Solo Coords</button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </DialogContent>
