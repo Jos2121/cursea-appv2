@@ -150,6 +150,39 @@ export default function Dashboard() {
   // Custom Templates from DB
   const [dbTemplates, setDbTemplates] = useState<TemplateConfig[]>([]);
 
+  const resetRegenerateForm = () => {
+    setRegenerateJobId(null);
+    setRegenerateBgUrl('');
+    setRegenerateCustomBg('');
+    setRegenerateUserPhotoUrl('');
+    setRegenerateTitulo('');
+    setRegenerateArtista('');
+    setRegenerateDedicatoria('');
+    setRegenerateDedicatoriaSize(28);
+    setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+  };
+
+  const handleRegenerateModalOpenChange = (open: boolean) => {
+    setIsRegenerateModalOpen(open);
+    if (!open) resetRegenerateForm();
+  };
+
+  const resetTemplateForm = () => {
+    setTemplateBgUrl('');
+    setTemplateCustomBg('');
+    setTemplateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
+    setTemplateTitulo('Título Muestra');
+    setTemplateArtista('Artista Muestra');
+    setTemplateDedicatoria('Dedicatoria de muestra...');
+    setTemplateDedicatoriaSize(28);
+    setTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+  };
+
+  const handleTemplateModalOpenChange = (open: boolean) => {
+    setIsTemplateModalOpen(open);
+    if (!open) resetTemplateForm();
+  };
+
   const loadTemplates = async () => {
     try {
       const res = await fetch('/api/templates');
@@ -370,7 +403,7 @@ export default function Dashboard() {
       const data = await res.json().catch(() => ({}));
       
       if (res.ok) {
-        setIsRegenerateModalOpen(false);
+        handleRegenerateModalOpenChange(false);
         fetchJobs();
         toast.success('Video generado correctamente');
       } else {
@@ -769,13 +802,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => {
-              setTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
-              setTemplateBgUrl('');
-              setTemplateCustomBg('');
-              setTemplateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
-              setTemplateTitulo('Título Muestra');
-              setTemplateArtista('Artista Muestra');
-              setTemplateDedicatoria('Dedicatoria de muestra...');
+              resetTemplateForm();
               setIsTemplateModalOpen(true);
             }}
             className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
@@ -1195,7 +1222,7 @@ export default function Dashboard() {
         )}
 
         {/* Regenerate Video Modal */}
-        <Dialog open={isRegenerateModalOpen} onOpenChange={setIsRegenerateModalOpen}>
+        <Dialog open={isRegenerateModalOpen} onOpenChange={handleRegenerateModalOpenChange}>
           <DialogContent className="bg-[#F5EADC] border-none text-neutral-900 max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl p-0">
             <div className="flex flex-col md:flex-row h-full">
               {/* Form Side */}
@@ -1280,7 +1307,7 @@ export default function Dashboard() {
                 </div>
 
                 <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
-                  <Button variant="ghost" onClick={() => setIsRegenerateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+                  <Button variant="ghost" onClick={() => handleRegenerateModalOpenChange(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
                   <Button
                     onClick={handleRegenerateVideo}
                     disabled={isRegenerating}
@@ -1314,7 +1341,7 @@ export default function Dashboard() {
         </Dialog>
 
         {/* Template Modal */}
-        <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+        <Dialog open={isTemplateModalOpen} onOpenChange={handleTemplateModalOpenChange}>
           <DialogContent className="bg-[#F5EADC] border-none text-neutral-900 max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl p-0">
             <div className="flex flex-col md:flex-row h-full">
               {/* Form Side */}
@@ -1371,11 +1398,11 @@ export default function Dashboard() {
                 </div>
 
                 <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
-                  <Button variant="ghost" onClick={() => setIsTemplateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+                  <Button variant="ghost" onClick={() => handleTemplateModalOpenChange(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
                   <Button
                     onClick={() => {
                       handleSaveTemplate(templateConfig, templateBgUrl === 'custom' ? templateCustomBg : templateBgUrl, templateDedicatoriaSize, 'completa');
-                      setIsTemplateModalOpen(false);
+                      handleTemplateModalOpenChange(false);
                     }}
                     className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
                   >
