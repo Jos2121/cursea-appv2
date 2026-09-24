@@ -2,9 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Gifts from './pages/Gifts';
-import GiftBuilder from './pages/GiftBuilder';
-import PublicGift from './pages/PublicGift';
 import Landing from './pages/Landing';
 import LandingRetry from './pages/LandingRetry';
 import MainLayout from './layouts/MainLayout';
@@ -21,9 +18,6 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        {/* Public Gift Route */}
-        <Route path="/p/:slug" element={<PublicGift />} />
-        
         {/* Landing Page Route */}
         <Route path="/landing" element={<Landing />} />
         <Route path="/segundo-intento" element={<LandingRetry />} />
@@ -34,22 +28,6 @@ export default function App() {
           element={
             <PrivateRoute>
               <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/gifts"
-          element={
-            <PrivateRoute>
-              <Gifts />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/gifts/new"
-          element={
-            <PrivateRoute>
-              <GiftBuilder />
             </PrivateRoute>
           }
         />
