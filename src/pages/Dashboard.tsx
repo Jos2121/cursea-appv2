@@ -739,8 +739,8 @@ export default function Dashboard() {
           <button
             onClick={() => setActiveTab('history')}
             className={`px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === 'history' 
-                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20' 
+              activeTab === 'history'
+                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20'
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
@@ -749,12 +749,28 @@ export default function Dashboard() {
           <button
             onClick={() => setActiveTab('studio')}
             className={`px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === 'studio' 
-                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20' 
+              activeTab === 'studio'
+                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20'
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
             }`}
           >
             Manual Studio
+          </button>
+          <button
+            onClick={() => {
+              setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+              setRegenerateBgUrl('');
+              setRegenerateCustomBg('');
+              setRegenerateUserPhotoUrl('');
+              setRegenerateTitulo('Título Muestra');
+              setRegenerateArtista('Artista Muestra');
+              setRegenerateDedicatoria('Dedicatoria de muestra...');
+              setIsRegenerateModalOpen(true);
+            }}
+            className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Crear Plantilla
           </button>
         </div>
 
@@ -1274,14 +1290,16 @@ export default function Dashboard() {
 
                 <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
                   <Button variant="ghost" onClick={() => setIsRegenerateModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-                  <Button 
-                    onClick={handleRegenerateVideo} 
-                    disabled={isRegenerating}
-                    className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
-                  >
-                    {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
-                    Comenzar Render
-                  </Button>
+                  {regenerateJobId && (
+                    <Button
+                      onClick={handleRegenerateVideo}
+                      disabled={isRegenerating}
+                      className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                    >
+                      {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                      Comenzar Render
+                    </Button>
+                  )}
                 </DialogFooter>
               </div>
 
@@ -1304,8 +1322,14 @@ export default function Dashboard() {
                 <div className="mt-8 text-center space-y-4">
                   <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Guardar Plantilla</span>
                   <div className="flex gap-4">
-                    <button onClick={() => handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa')} className="text-[10px] font-bold text-[#8B1F32] hover:underline uppercase">Completa</button>
-                    <button onClick={() => handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'coordenadas')} className="text-[10px] font-bold text-neutral-400 hover:text-neutral-900 hover:underline uppercase">Solo Coords</button>
+                    <button onClick={() => {
+                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'completa');
+                        if (!regenerateJobId) setIsRegenerateModalOpen(false);
+                      }} className="text-[10px] font-bold text-[#8B1F32] hover:underline uppercase">Completa</button>
+                    <button onClick={() => {
+                        handleSaveTemplate(regenerateTemplateConfig, regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl, regenerateDedicatoriaSize, 'coordenadas');
+                        if (!regenerateJobId) setIsRegenerateModalOpen(false);
+                      }} className="text-[10px] font-bold text-neutral-400 hover:text-neutral-900 hover:underline uppercase">Solo Coords</button>
                   </div>
                 </div>
               </div>
