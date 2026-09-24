@@ -925,11 +925,6 @@ export default function Dashboard() {
                         <div className="max-w-[150px] truncate font-medium text-neutral-800" title={job.prompt}>
                           {job.prompt}
                         </div>
-                        {job.whatsappNumber && (
-                          <div className="text-[10px] font-bold text-[#8B1F32] mt-0.5 flex items-center gap-1 max-w-[150px] truncate" title={`WA: ${job.whatsappNumber}`}>
-                            WA: {job.whatsappNumber}
-                          </div>
-                        )}
                         {job.recipient && (
                           <div className="text-[9px] text-neutral-400 mt-0.5 flex items-center gap-1 font-bold uppercase max-w-[150px] truncate" title={`To: ${job.recipient}`}>
                             <Send className="w-2.5 h-2.5 shrink-0" /> {job.recipient}
