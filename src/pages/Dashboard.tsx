@@ -803,7 +803,7 @@ export default function Dashboard() {
           <button
             onClick={() => {
               resetTemplateForm();
-              setIsTemplateModalOpen(true);
+              handleTemplateModalOpenChange(true);
             }}
             className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
           >
@@ -996,7 +996,7 @@ export default function Dashboard() {
                                 setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
                                 setRegenerateDedicatoriaSize(28);
                               }
-                              setIsRegenerateModalOpen(true);
+                              handleRegenerateModalOpenChange(true);
                             }}
                             className="p-1.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
                             title={isLimitReached ? "Límite de generaciones alcanzado" : "Generate Video"}
