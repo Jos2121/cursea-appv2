@@ -1178,27 +1178,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Template Save Actions */}
-              {studioStep === 2 && (
-                <div className="bg-white/60 p-5 rounded-3xl border border-[#8B1F32]/10 shadow-sm w-full max-w-[320px] text-center space-y-3">
-                  <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-[0.2em] block">Guardar Configuración</span>
-                  <div className="flex items-center justify-center gap-4">
-                    <button
-                      onClick={() => handleSaveTemplate(studioTemplateConfig, backgroundUrl === 'custom' ? customBackground : backgroundUrl, dedicatoriaSize, 'completa')}
-                      className="text-xs font-bold text-[#8B1F32] hover:underline"
-                    >
-                      Diseño Completo
-                    </button>
-                    <span className="w-1 h-1 rounded-full bg-neutral-300" />
-                    <button
-                      onClick={() => handleSaveTemplate(studioTemplateConfig, backgroundUrl === 'custom' ? customBackground : backgroundUrl, dedicatoriaSize, 'coordenadas')}
-                      className="text-xs font-bold text-neutral-600 hover:text-neutral-900 hover:underline"
-                    >
-                      Solo Coords
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Template Save Actions Removed From Here */}
             </div>
           </div>
         )}
