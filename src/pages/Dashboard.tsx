@@ -1277,14 +1277,44 @@ export default function Dashboard() {
 
                   <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada Imagen</Label>
-                    <Input
-                      type="url"
-                      value={userPhotoUrl}
-                      onChange={(e) => setUserPhotoUrl(e.target.value)}
-                      disabled={isProcessing}
-                      placeholder="https://..."
-                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={userPhotoUrl}
+                        onChange={(e) => setUserPhotoUrl(e.target.value)}
+                        disabled={isProcessing}
+                        placeholder="https://... o sube foto"
+                        className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10 flex-1"
+                      />
+                      <div className="relative flex items-center justify-center">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          disabled={isProcessing}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 3 * 1024 * 1024) {
+                                toast.error("La imagen no puede pesar más de 3MB");
+                                e.target.value = '';
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                if (event.target?.result) {
+                                  setUserPhotoUrl(event.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <Button type="button" disabled={isProcessing} className="bg-[#8B1F32]/10 text-[#8B1F32] hover:bg-[#8B1F32]/20 w-auto px-4 h-10 rounded-xl whitespace-nowrap text-xs font-semibold pointer-events-none">
+                          Subir Foto
+                        </Button>
+                      </div>
+                    </div>
                     {renderPhotoControls(studioTemplateConfig, setStudioTemplateConfig)}
                   </div>
 
@@ -1412,13 +1442,42 @@ export default function Dashboard() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL)</Label>
-                      <Input
-                        value={regenerateUserPhotoUrl}
-                        onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="rounded-xl border-neutral-200 text-xs h-10"
-                      />
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL o Archivo)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={regenerateUserPhotoUrl}
+                          onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="rounded-xl border-neutral-200 text-xs h-10 flex-1"
+                        />
+                        <div className="relative flex items-center justify-center">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 3 * 1024 * 1024) {
+                                  toast.error("La imagen no puede pesar más de 3MB");
+                                  e.target.value = '';
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  if (event.target?.result) {
+                                    setRegenerateUserPhotoUrl(event.target.result as string);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          <Button type="button" className="bg-[#8B1F32]/10 text-[#8B1F32] hover:bg-[#8B1F32]/20 w-auto px-3 h-10 rounded-xl whitespace-nowrap text-xs font-semibold pointer-events-none">
+                            Subir
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   {renderPhotoControls(regenerateTemplateConfig, setRegenerateTemplateConfig)}
