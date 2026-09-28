@@ -1,22 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Play, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Play,
   Pause,
-  Star, 
-  Music, 
-  MessageCircleHeart, 
-  Headphones, 
-  ChevronDown, 
+  Star,
+  Music,
+  MessageCircleHeart,
+  Headphones,
+  ChevronDown,
   ChevronUp,
   CheckCircle,
   ShieldCheck,
-  Heart
+  Heart,
+  Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+function ExampleCard({ item, idx }: { item: any, idx: number }) {
+  const [audioUrl, setAudioUrl] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const fileInputId = `example-audio-upload-${idx}`;
+
+  const togglePlay = () => {
+    if (!audioUrl) {
+      document.getElementById(fileInputId)?.click();
+      return;
+    }
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current?.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      setIsPlaying(true);
+      setTimeout(() => audioRef.current?.play(), 50);
+    }
+  };
+
+  return (
+    <div className="bg-[#F5EADC]/20 border border-[#F5EADC] rounded-2xl p-6 text-center hover:shadow-lg transition-shadow relative">
+      <input
+        id={fileInputId}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={handleUpload}
+      />
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onEnded={() => setIsPlaying(false)}
+        />
+      )}
+      
+      {!audioUrl && (
+        <button onClick={() => document.getElementById(fileInputId)?.click()} className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm border border-neutral-200 text-[#8B1F32] hover:bg-neutral-50 z-10">
+          <Upload className="w-4 h-4" />
+        </button>
+      )}
+
+      <div className="bg-white w-16 h-16 mx-auto rounded-full flex items-center justify-center shadow-sm mb-4">
+        {item.icon}
+      </div>
+      <h3 className="text-xl font-bold mb-2 text-neutral-900">{item.title}</h3>
+      <p className="text-neutral-600 mb-6">{item.desc}</p>
+      
+      <button
+        onClick={togglePlay}
+        className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-[#8B1F32] text-[#8B1F32] rounded-full hover:bg-[#F5EADC] transition-colors font-medium"
+      >
+        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        {audioUrl ? (isPlaying ? 'Pausar' : 'Reproducir') : 'Subir y Escuchar'}
+      </button>
+    </div>
+  );
+}
+
 export default function CreaTuCancion() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPlayingHero, setIsPlayingHero] = useState<boolean>(false);
+  const [heroAudioUrl, setHeroAudioUrl] = useState<string>('');
+  const heroAudioRef = useRef<HTMLAudioElement>(null);
+
+  const toggleHeroPlay = () => {
+    if (!heroAudioUrl) {
+      document.getElementById('hero-audio-upload')?.click();
+      return;
+    }
+    if (isPlayingHero) {
+      heroAudioRef.current?.pause();
+      setIsPlayingHero(false);
+    } else {
+      heroAudioRef.current?.play();
+      setIsPlayingHero(true);
+    }
+  };
+
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setHeroAudioUrl(url);
+      setIsPlayingHero(true);
+      setTimeout(() => heroAudioRef.current?.play(), 50);
+    }
+  };
 
   // Section 2: Social Proof Toast Effect
   useEffect(() => {
@@ -72,23 +169,44 @@ export default function CreaTuCancion() {
           </button>
 
           {/* Mini-reproductor de audio simulado */}
-          <div className="mt-12 bg-white max-w-md mx-auto p-4 rounded-2xl shadow-xl border border-neutral-200 flex items-center gap-4">
-            <button 
-              onClick={() => setIsPlaying(!isPlaying)}
+          <div className="mt-12 bg-white max-w-md mx-auto p-4 rounded-2xl shadow-xl border border-neutral-200 flex items-center gap-4 relative">
+            <input
+              id="hero-audio-upload"
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleHeroUpload}
+            />
+            {heroAudioUrl && (
+              <audio
+                ref={heroAudioRef}
+                src={heroAudioUrl}
+                onEnded={() => setIsPlayingHero(false)}
+              />
+            )}
+            <button
+              onClick={toggleHeroPlay}
               className="bg-[#8B1F32] text-white p-4 rounded-full flex-shrink-0 hover:bg-[#701828] transition-colors"
             >
-              {isPlaying ? <Pause className="w-6 h-6" fill="currentColor" /> : <Play className="w-6 h-6" fill="currentColor" />}
+              {isPlayingHero ? <Pause className="w-6 h-6" fill="currentColor" /> : <Play className="w-6 h-6" fill="currentColor" />}
             </button>
             <div className="flex-grow text-left">
-              <p className="font-bold text-neutral-900 text-sm">Ejemplo de Canción - "Nuestro Aniversario"</p>
+              <p className="font-bold text-neutral-900 text-sm">
+                {heroAudioUrl ? 'Audio cargado (Reproduciendo)' : 'Sube un audio para escuchar'}
+              </p>
               <div className="w-full bg-neutral-200 h-2 rounded-full mt-2 overflow-hidden">
-                <div className="bg-[#8B1F32] h-full w-1/3 rounded-full"></div>
+                <div className={`bg-[#8B1F32] h-full rounded-full transition-all duration-300 ${isPlayingHero ? 'w-full animate-pulse' : 'w-1/3'}`}></div>
               </div>
               <div className="flex justify-between text-xs text-neutral-500 mt-1">
-                <span>1:12</span>
-                <span>3:45</span>
+                <span>0:00</span>
+                <span>{heroAudioUrl ? '...' : '3:45'}</span>
               </div>
             </div>
+            {!heroAudioUrl && (
+              <button onClick={() => document.getElementById('hero-audio-upload')?.click()} className="absolute -top-3 -right-3 bg-white p-2 rounded-full shadow-md border border-neutral-200 text-[#8B1F32] hover:bg-neutral-50">
+                <Upload className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -122,16 +240,7 @@ export default function CreaTuCancion() {
               { title: 'Familia', desc: 'Día de la madre, padre o abuelos', icon: <MessageCircleHeart className="w-8 h-8 text-[#8B1F32]" /> },
               { title: 'Cumpleaños', desc: 'Un regalo original y divertido', icon: <Music className="w-8 h-8 text-[#8B1F32]" /> },
             ].map((item, idx) => (
-              <div key={idx} className="bg-[#F5EADC]/20 border border-[#F5EADC] rounded-2xl p-6 text-center hover:shadow-lg transition-shadow">
-                <div className="bg-white w-16 h-16 mx-auto rounded-full flex items-center justify-center shadow-sm mb-4">
-                  {item.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-2 text-neutral-900">{item.title}</h3>
-                <p className="text-neutral-600 mb-6">{item.desc}</p>
-                <button className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-[#8B1F32] text-[#8B1F32] rounded-full hover:bg-[#F5EADC] transition-colors font-medium">
-                  <Play className="w-4 h-4" /> Escuchar Demo
-                </button>
-              </div>
+              <ExampleCard key={idx} item={item} idx={idx} />
             ))}
           </div>
         </div>
