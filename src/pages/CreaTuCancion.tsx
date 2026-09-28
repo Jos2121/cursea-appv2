@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Play, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Play,
   Pause,
-  Star, 
-  Music, 
-  MessageCircleHeart, 
-  Headphones, 
-  ChevronDown, 
+  Star,
+  Music,
+  MessageCircleHeart,
+  Headphones,
+  ChevronDown,
   ChevronUp,
   CheckCircle,
   ShieldCheck,
@@ -16,7 +16,51 @@ import { toast } from 'sonner';
 
 export default function CreaTuCancion() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playingTrack, setPlayingTrack] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState('0:00');
+  const [duration, setDuration] = useState('0:00');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlay = (url: string) => {
+    if (!audioRef.current) return;
+    
+    if (playingTrack === url) {
+      if (audioRef.current.paused) {
+        audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+        setPlayingTrack(null);
+      }
+    } else {
+      audioRef.current.src = url;
+      audioRef.current.play();
+      setPlayingTrack(url);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const current = audioRef.current.currentTime;
+      const total = audioRef.current.duration || 0;
+      setProgress((current / total) * 100 || 0);
+      setCurrentTime(formatTime(current));
+      setDuration(formatTime(total));
+    }
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleAudioEnded = () => {
+    setPlayingTrack(null);
+    setProgress(0);
+    setCurrentTime('0:00');
+  };
 
   // Section 2: Social Proof Toast Effect
   useEffect(() => {
@@ -57,6 +101,12 @@ export default function CreaTuCancion() {
 
   return (
     <div className="min-h-screen text-neutral-900 font-sans">
+      <audio
+        ref={audioRef}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleAudioEnded}
+        onLoadedMetadata={handleTimeUpdate}
+      />
       
       {/* 1. Hero Section */}
       <section className="bg-[#F5EADC] pt-20 pb-16 px-6 lg:px-8">
@@ -73,20 +123,23 @@ export default function CreaTuCancion() {
 
           {/* Mini-reproductor de audio simulado */}
           <div className="mt-12 bg-white max-w-md mx-auto p-4 rounded-2xl shadow-xl border border-neutral-200 flex items-center gap-4">
-            <button 
-              onClick={() => setIsPlaying(!isPlaying)}
+            <button
+              onClick={() => togglePlay('/audio/hero-demo.mp3')}
               className="bg-[#8B1F32] text-white p-4 rounded-full flex-shrink-0 hover:bg-[#701828] transition-colors"
             >
-              {isPlaying ? <Pause className="w-6 h-6" fill="currentColor" /> : <Play className="w-6 h-6" fill="currentColor" />}
+              {playingTrack === '/audio/hero-demo.mp3' ? <Pause className="w-6 h-6" fill="currentColor" /> : <Play className="w-6 h-6" fill="currentColor" />}
             </button>
             <div className="flex-grow text-left">
               <p className="font-bold text-neutral-900 text-sm">Ejemplo de Canción - "Nuestro Aniversario"</p>
               <div className="w-full bg-neutral-200 h-2 rounded-full mt-2 overflow-hidden">
-                <div className="bg-[#8B1F32] h-full w-1/3 rounded-full"></div>
+                <div
+                  className="bg-[#8B1F32] h-full rounded-full transition-all duration-100"
+                  style={{ width: playingTrack === '/audio/hero-demo.mp3' ? `${progress}%` : '0%' }}
+                ></div>
               </div>
               <div className="flex justify-between text-xs text-neutral-500 mt-1">
-                <span>1:12</span>
-                <span>3:45</span>
+                <span>{playingTrack === '/audio/hero-demo.mp3' ? currentTime : '0:00'}</span>
+                <span>{playingTrack === '/audio/hero-demo.mp3' ? duration : '0:00'}</span>
               </div>
             </div>
           </div>
@@ -118,9 +171,9 @@ export default function CreaTuCancion() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { title: 'Romántico', desc: 'Para aniversarios y pedidas de mano', icon: <Heart className="w-8 h-8 text-[#8B1F32]" /> },
-              { title: 'Familia', desc: 'Día de la madre, padre o abuelos', icon: <MessageCircleHeart className="w-8 h-8 text-[#8B1F32]" /> },
-              { title: 'Cumpleaños', desc: 'Un regalo original y divertido', icon: <Music className="w-8 h-8 text-[#8B1F32]" /> },
+              { title: 'Romántico', desc: 'Para aniversarios y pedidas de mano', icon: <Heart className="w-8 h-8 text-[#8B1F32]" />, url: '/audio/romantico.mp3' },
+              { title: 'Familia', desc: 'Día de la madre, padre o abuelos', icon: <MessageCircleHeart className="w-8 h-8 text-[#8B1F32]" />, url: '/audio/familia.mp3' },
+              { title: 'Cumpleaños', desc: 'Un regalo original y divertido', icon: <Music className="w-8 h-8 text-[#8B1F32]" />, url: '/audio/cumpleanos.mp3' },
             ].map((item, idx) => (
               <div key={idx} className="bg-[#F5EADC]/20 border border-[#F5EADC] rounded-2xl p-6 text-center hover:shadow-lg transition-shadow">
                 <div className="bg-white w-16 h-16 mx-auto rounded-full flex items-center justify-center shadow-sm mb-4">
@@ -128,8 +181,12 @@ export default function CreaTuCancion() {
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-neutral-900">{item.title}</h3>
                 <p className="text-neutral-600 mb-6">{item.desc}</p>
-                <button className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-[#8B1F32] text-[#8B1F32] rounded-full hover:bg-[#F5EADC] transition-colors font-medium">
-                  <Play className="w-4 h-4" /> Escuchar Demo
+                <button
+                  onClick={() => togglePlay(item.url)}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-[#8B1F32] text-[#8B1F32] rounded-full hover:bg-[#F5EADC] transition-colors font-medium"
+                >
+                  {playingTrack === item.url ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {playingTrack === item.url ? 'Pausar' : 'Escuchar Demo'}
                 </button>
               </div>
             ))}
