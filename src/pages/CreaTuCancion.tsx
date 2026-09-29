@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Play,
   Pause,
@@ -15,6 +16,7 @@ import {
 import { toast } from 'sonner';
 
 export default function CreaTuCancion() {
+  const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -117,7 +119,10 @@ export default function CreaTuCancion() {
           <p className="text-xl md:text-2xl mb-10 text-neutral-800">
             Regala emociones. El equipo detrás de nuestra plataforma crea la banda sonora personalizada para tus mejores momentos.
           </p>
-          <button className="bg-[#8B1F32] hover:bg-[#701828] text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105">
+          <button
+            onClick={() => navigate('/crea-tu-cancion')}
+            className="bg-[#8B1F32] hover:bg-[#701828] text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105"
+          >
             ¡Quiero mi canción ahora!
           </button>
 
@@ -229,6 +234,16 @@ export default function CreaTuCancion() {
               </p>
             </div>
           </div>
+
+          {/* Botón de acción adicional */}
+          <div className="mt-14">
+            <button
+              onClick={() => navigate('/crea-tu-cancion')}
+              className="bg-[#8B1F32] hover:bg-[#701828] text-white text-lg font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105"
+            >
+              Comenzar a crear mi canción
+            </button>
+          </div>
         </div>
       </section>
 
@@ -298,7 +313,10 @@ export default function CreaTuCancion() {
           <p className="text-white/80 text-xl mb-10">
             Únete a las miles de personas que ya han regalado un momento inolvidable.
           </p>
-          <button className="bg-white text-[#8B1F32] text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:bg-neutral-100 transition-transform transform hover:scale-105 mb-8">
+          <button
+            onClick={() => navigate('/crea-tu-cancion')}
+            className="bg-white text-[#8B1F32] text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:bg-neutral-100 transition-transform transform hover:scale-105 mb-8"
+          >
             Crear mi canción ahora
           </button>
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 text-white/90">
