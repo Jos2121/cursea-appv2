@@ -12,7 +12,6 @@ import {
   CheckCircle,
   ShieldCheck,
   Heart,
-  Upload,
   Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,7 +20,7 @@ export default function CreaTuCancion() {
   const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
-  const [heroCoverImage, setHeroCoverImage] = useState<string>('/images/hero-cover.jpg');
+  const [imageError, setImageError] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
@@ -152,64 +151,31 @@ export default function CreaTuCancion() {
             </div>
           </div>
 
-          {/* Espacio 9:16 para Portada de Video / Imagen */}
+          {/* Espacio 9:16 para Portada de Video / Imagen desde /public */}
           <div className="mt-10 max-w-[280px] sm:max-w-[300px] mx-auto">
-            <div className="relative aspect-[9/16] bg-neutral-900 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white group">
-              {heroCoverImage ? (
+            <div className="relative aspect-[9/16] bg-neutral-900 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white">
+              {!imageError ? (
                 <img
-                  src={heroCoverImage}
-                  alt="Portada de Video"
-                  onError={(e) => {
-                    // Si no encuentra la imagen física aún, dejamos una ilustración limpia
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                    const fallbackEl = document.getElementById('hero-cover-fallback');
-                    if (fallbackEl) fallbackEl.style.display = 'flex';
-                  }}
+                  src="/images/hero-cover.jpg"
+                  alt="Portada de Video Personalizada"
+                  onError={() => setImageError(true)}
                   className="w-full h-full object-cover"
                 />
-              ) : null}
-
-              {/* Vista alternativa / Fallback interactivo */}
-              <div
-                id="hero-cover-fallback"
-                className={`w-full h-full absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/80 bg-neutral-900 ${heroCoverImage ? 'hidden' : 'flex'}`}
-              >
-                <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-3 text-white">
-                  <ImageIcon className="w-7 h-7" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white/80 bg-neutral-900">
+                  <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-3 text-white">
+                    <ImageIcon className="w-7 h-7" />
+                  </div>
+                  <p className="font-serif font-bold text-lg text-white mb-1">Portada Video (9:16)</p>
+                  <p className="text-xs text-neutral-400 font-mono mt-1">public/images/hero-cover.jpg</p>
+                  <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">
+                    Sube tu imagen en la carpeta public para que aparezca aquí automáticamente.
+                  </p>
                 </div>
-                <p className="font-serif font-bold text-lg text-white mb-1">Portada Video 9:16</p>
-                <p className="text-xs text-neutral-400 mb-4">public/images/hero-cover.jpg</p>
-              </div>
-
-              {/* Botón flotante para probar o subir imagen directamente desde el dispositivo */}
-              <label className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all border border-white/20 flex items-center gap-2 shadow-lg">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Cambiar Foto</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        if (event.target?.result) {
-                          setHeroCoverImage(event.target.result as string);
-                          const fallbackEl = document.getElementById('hero-cover-fallback');
-                          if (fallbackEl) fallbackEl.style.display = 'none';
-                          const img = document.querySelector('img[alt="Portada de Video"]') as HTMLImageElement;
-                          if (img) img.style.display = 'block';
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-              </label>
+              )}
             </div>
             <p className="text-xs text-neutral-500 mt-3 font-medium">
-              Formato vertical 9:16 (ejemplo de entrega de video)
+              Ejemplo de Portada en Video (9:16)
             </p>
           </div>
         </div>
