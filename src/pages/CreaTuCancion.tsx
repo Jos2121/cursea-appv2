@@ -95,7 +95,7 @@ export default function CreaTuCancion() {
     },
     {
       question: '¿En qué formato recibiré la canción?',
-      answer: 'Te entregaremos la canción en formato MP3 de alta calidad (320kbps) y en formato WAV (calidad de estudio), perfectos para reproducir en cualquier dispositivo o evento.'
+      answer: 'Te entregaremos la canción en formato WAV con máxima calidad de audio de estudio, junto con una portada en video personalizado lista para compartir y proyectar en tus momentos especiales.'
     }
   ];
 
@@ -223,9 +223,9 @@ export default function CreaTuCancion() {
               <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-md mb-6 relative z-10 text-[#8B1F32]">
                 <Headphones className="w-10 h-10" />
               </div>
-              <h3 className="text-2xl font-bold mb-3">3. Recibe tu MP3</h3>
+              <h3 className="text-2xl font-bold mb-3">3. Recibe tu WAV + Video</h3>
               <p className="text-neutral-800">
-                Recibe tu canción en un máximo de 30 minutos una vez verificado el pago, lista para dedicar, emocionar y guardar para siempre.
+                Recibe tu audio en formato WAV de alta fidelidad más tu portada en video personalizado en un máximo de 30 minutos una vez verificado el pago.
               </p>
             </div>
           </div>
