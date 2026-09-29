@@ -19,9 +19,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        {/* Landing Page Route */}
-        <Route path="/landing" element={<Landing />} />
-        <Route path="/crea-tu-cancion" element={<CreaTuCancion />} />
+        {/* Swapped Routes */}
+        <Route path="/crea-tu-cancion" element={<Landing />} />
+        <Route path="/landing" element={<CreaTuCancion />} />
 
         {/* Private Routes wrapped in MainLayout */}
         <Route
