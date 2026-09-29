@@ -87,7 +87,7 @@ export default function CreaTuCancion() {
   const faqs = [
     {
       question: '¿Cuánto tiempo tarda en estar lista mi canción?',
-      answer: 'Recibirás la primera versión de tu canción en un plazo de 3 a 5 días hábiles. Nuestro equipo de productores trabaja rápidamente sin comprometer la calidad.'
+      answer: 'Recibirás tu canción en un plazo máximo de 30 minutos una vez verificado el pago. Nuestro sistema y equipo trabajan con la máxima agilidad para que tengas tu música lista de inmediato.'
     },
     {
       question: '¿Puedo pedir cambios si algo no me convence?',
@@ -225,7 +225,7 @@ export default function CreaTuCancion() {
               </div>
               <h3 className="text-2xl font-bold mb-3">3. Recibe tu MP3</h3>
               <p className="text-neutral-800">
-                En pocos días recibirás la canción final lista para dedicar, emocionar y guardar para siempre.
+                Recibe tu canción en un máximo de 30 minutos una vez verificado el pago, lista para dedicar, emocionar y guardar para siempre.
               </p>
             </div>
           </div>
