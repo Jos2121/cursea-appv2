@@ -119,6 +119,22 @@ export default function Dashboard() {
   const [regenerateTemplateConfig, setRegenerateTemplateConfig] = useState<TemplateConfig>(DEFAULT_TEMPLATE);
   const [isRegenerating, setIsRegenerating] = useState(false);
 
+  // Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [paymentQrUrl, setPaymentQrUrl] = useState('');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('paymentSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setPaymentInstructions(parsed.instructions || '');
+        setPaymentQrUrl(parsed.qrUrl || '');
+      }
+    } catch(e) {}
+  }, []);
+
   // Template Modal State
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [templateBgUrl, setTemplateBgUrl] = useState('');
@@ -893,6 +909,13 @@ export default function Dashboard() {
             <ImagePlus className="w-4 h-4" />
             Crear Plantilla
           </button>
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Medios de Pago
+          </button>
         </div>
 
         {/* Content */}
@@ -1642,6 +1665,57 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment Methods Modal */}
+        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+          <DialogContent className="bg-white border-none text-neutral-900 max-w-lg rounded-3xl shadow-2xl p-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-serif font-bold flex items-center gap-2 text-[#8B1F32]">
+                <Settings className="w-6 h-6" />
+                Configurar Medios de Pago
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Instrucciones de Pago</Label>
+                <Textarea
+                  value={paymentInstructions}
+                  onChange={(e) => setPaymentInstructions(e.target.value)}
+                  placeholder="Ej: Transfiere al BCP 123456789 a nombre de..."
+                  className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] resize-none min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-neutral-400 tracking-widest">URL del QR</Label>
+                <Input
+                  type="url"
+                  value={paymentQrUrl}
+                  onChange={(e) => setPaymentQrUrl(e.target.value)}
+                  placeholder="https://ejemplo.com/mi-qr.png"
+                  className="rounded-xl border-neutral-200 focus:ring-[#8B1F32]"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-8 sm:justify-between">
+              <Button variant="ghost" onClick={() => setIsPaymentModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  localStorage.setItem('paymentSettings', JSON.stringify({
+                    instructions: paymentInstructions,
+                    qrUrl: paymentQrUrl
+                  }));
+                  toast.success('Medios de pago guardados');
+                  setIsPaymentModalOpen(false);
+                }}
+                className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+              >
+                Guardar
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
