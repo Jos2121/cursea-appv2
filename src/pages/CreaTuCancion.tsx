@@ -156,7 +156,7 @@ export default function CreaTuCancion() {
             <div className="relative aspect-[9/16] bg-neutral-900 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white">
               {!imageError ? (
                 <img
-                  src="/images/hero-cover.jpg"
+                  src="/images/hero-cover.png"
                   alt="Portada de Video Personalizada"
                   onError={() => setImageError(true)}
                   className="w-full h-full object-cover"
@@ -167,7 +167,7 @@ export default function CreaTuCancion() {
                     <ImageIcon className="w-7 h-7" />
                   </div>
                   <p className="font-serif font-bold text-lg text-white mb-1">Portada Video (9:16)</p>
-                  <p className="text-xs text-neutral-400 font-mono mt-1">public/images/hero-cover.jpg</p>
+                  <p className="text-xs text-neutral-400 font-mono mt-1">public/images/hero-cover.png</p>
                   <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">
                     Sube tu imagen en la carpeta public para que aparezca aquí automáticamente.
                   </p>
