@@ -26,6 +26,11 @@ export default function CreaTuCancion() {
   const [duration, setDuration] = useState('0:00');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const handleGoToForm = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    navigate('/crea-tu-cancion');
+  };
+
   const togglePlay = (url: string) => {
     if (!audioRef.current) return;
     
@@ -122,7 +127,7 @@ export default function CreaTuCancion() {
             Regala emociones. El equipo detrás de nuestra plataforma crea la banda sonora personalizada para tus mejores momentos.
           </p>
           <button
-            onClick={() => navigate('/crea-tu-cancion')}
+            onClick={handleGoToForm}
             className="bg-[#8B1F32] hover:bg-[#701828] text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105"
           >
             ¡Quiero mi canción ahora!
@@ -268,7 +273,7 @@ export default function CreaTuCancion() {
           {/* Botón de acción adicional */}
           <div className="mt-14">
             <button
-              onClick={() => navigate('/crea-tu-cancion')}
+              onClick={handleGoToForm}
               className="bg-[#8B1F32] hover:bg-[#701828] text-white text-lg font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105"
             >
               Comenzar a crear mi canción
@@ -344,7 +349,7 @@ export default function CreaTuCancion() {
             Únete a las miles de personas que ya han regalado un momento inolvidable.
           </p>
           <button
-            onClick={() => navigate('/crea-tu-cancion')}
+            onClick={handleGoToForm}
             className="bg-white text-[#8B1F32] text-xl font-bold py-4 px-12 rounded-full shadow-lg hover:bg-neutral-100 transition-transform transform hover:scale-105 mb-8"
           >
             Crear mi canción ahora

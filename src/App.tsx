@@ -1,11 +1,21 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Landing from './pages/Landing';
 import CreaTuCancion from './pages/CreaTuCancion';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from "@/components/ui/sonner"; // Assuming sonner is available or will create
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -15,6 +25,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Toaster />
       <Routes>
         <Route path="/login" element={<Login />} />
