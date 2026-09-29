@@ -115,7 +115,7 @@ export default function CreaTuCancion() {
             Convierte tu historia en una canción inolvidable
           </h1>
           <p className="text-xl md:text-2xl mb-10 text-neutral-800">
-            Regala emociones. Nosotros componemos, tocamos y cantamos la banda sonora de tus mejores momentos.
+            Regala emociones. El equipo detrás de nuestra plataforma crea la banda sonora personalizada para tus mejores momentos.
           </p>
           <button className="bg-[#8B1F32] hover:bg-[#701828] text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105">
             ¡Quiero mi canción ahora!
