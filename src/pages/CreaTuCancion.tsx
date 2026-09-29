@@ -158,7 +158,7 @@ export default function CreaTuCancion() {
             <span className="text-2xl font-bold text-neutral-900">4.9/5</span>
           </div>
           <p className="text-lg font-medium text-neutral-800">
-            Más de <span className="font-bold text-[#8B1F32]">10,000 historias</span> transformadas en canciones. ¡Clientes 100% satisfechos!
+            Más de <span className="font-bold text-[#8B1F32]">1,000 historias</span> transformadas en canciones. ¡Clientes 100% satisfechos!
           </p>
         </div>
       </section>
