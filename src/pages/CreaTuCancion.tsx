@@ -216,7 +216,7 @@ export default function CreaTuCancion() {
               </div>
               <h3 className="text-2xl font-bold mb-3">2. Producción</h3>
               <p className="text-neutral-800">
-                Nuestros músicos profesionales componen la letra, graban los instrumentos y las voces con calidad de estudio.
+                El equipo detrás de la plataforma se encarga de dar vida a tu historia, produciendo la letra, melodías y voces con los más altos estándares sonoros.
               </p>
             </div>
             <div className="flex flex-col items-center">
