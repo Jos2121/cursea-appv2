@@ -611,37 +611,43 @@ export default function Landing() {
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Título de la Canción</Label>
-                    <Input 
-                      value={titulo} 
-                      onChange={e => setTitulo(e.target.value)} 
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Título de la Canción</Label>
+                      <span className="text-[10px] text-neutral-400 font-mono">{titulo.length}/25</span>
+                    </div>
+                    <Input
+                      value={titulo}
+                      onChange={e => setTitulo(e.target.value)}
                       placeholder="Ej. Nuestra Historia Eterna"
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
-                      maxLength={40}
+                      maxLength={25}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Artista(s)</Label>
-                    <Input 
-                      value={artista} 
-                      onChange={e => setArtista(e.target.value)} 
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Artista(s)</Label>
+                      <span className="text-[10px] text-neutral-400 font-mono">{artista.length}/25</span>
+                    </div>
+                    <Input
+                      value={artista}
+                      onChange={e => setArtista(e.target.value)}
                       placeholder="Ej. Juan y María"
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all"
-                      maxLength={30}
+                      maxLength={25}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Dedicatoria Final</Label>
-                    <Textarea 
-                      value={dedicatoria} 
-                      onChange={e => setDedicatoria(e.target.value)} 
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">Dedicatoria Final</Label>
+                      <span className="text-[10px] text-neutral-400 font-mono">{dedicatoria.length}/70</span>
+                    </div>
+                    <Textarea
+                      value={dedicatoria}
+                      onChange={e => setDedicatoria(e.target.value)}
                       placeholder="Un pequeño mensaje de amor para el cierre..."
                       className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] transition-all resize-none min-h-[100px]"
-                      maxLength={80}
+                      maxLength={70}
                     />
-                    <div className="text-[10px] text-right text-neutral-400 font-mono">
-                      {dedicatoria.length}/80
-                    </div>
                   </div>
                 </div>
               </div>
