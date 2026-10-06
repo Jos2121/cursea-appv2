@@ -75,6 +75,18 @@ export default defineHandler(async (event) => {
       tempImagePath = path.join(mediaDir, `temp_photo_${Date.now()}.jpg`);
       fs.writeFileSync(tempImagePath, Buffer.from(arrayBuffer));
       finalImagePath = tempImagePath;
+    } else if (targetImage.startsWith("data:image/")) {
+      // Es una imagen en base64 (subida local en el frontend)
+      const matches = targetImage.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        tempImagePath = path.join(mediaDir, `temp_photo_${Date.now()}.${ext}`);
+        fs.writeFileSync(tempImagePath, buffer);
+        finalImagePath = tempImagePath;
+      } else {
+        throw createError({ statusCode: 400, statusMessage: "Invalid base64 image format" });
+      }
     } else if (targetImage.startsWith("/media/")) {
       // Es un archivo local que ya existe en el disco
       finalImagePath = path.join(mediaDir, path.basename(targetImage));
