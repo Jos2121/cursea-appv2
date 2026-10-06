@@ -102,6 +102,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [generatingAudioId, setGeneratingAudioId] = useState<string | null>(null);
 
+  // History search, filter, and pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingPromptValue, setEditingPromptValue] = useState('');
   const [isUpdatingPrompt, setIsUpdatingPrompt] = useState(false);
@@ -854,6 +860,33 @@ export default function Dashboard() {
     }
   };
 
+  const filteredJobs = useMemo(() => {
+    return jobs.filter(job => {
+      // Filter by Search Query (WhatsApp number, ID, etc)
+      const matchesSearch = searchQuery === '' ||
+        (job.whatsappNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.id.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by Date
+      const jobDate = new Date(job.createdAt).toISOString().split('T')[0];
+      const matchesDate = dateFilter === '' || jobDate === dateFilter;
+
+      return matchesSearch && matchesDate;
+    });
+  }, [jobs, searchQuery, dateFilter]);
+
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredJobs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredJobs, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, dateFilter]);
+
   return (
     <div className="min-h-screen bg-[#F5EADC] p-4 sm:p-8 font-sans selection:bg-[#8B1F32]/20 text-neutral-900">
       
@@ -921,18 +954,33 @@ export default function Dashboard() {
         {/* Content */}
         {activeTab === 'history' && (
           <div className="bg-white rounded-3xl border border-[#8B1F32]/10 overflow-hidden shadow-xl">
-            <div className="p-6 border-b border-neutral-50 flex justify-between items-center bg-white">
+            <div className="p-6 border-b border-neutral-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-[#8B1F32]" />
                 <h2 className="text-lg font-bold">Media Jobs Historial</h2>
               </div>
-              <button 
-                onClick={fetchJobs}
-                className="p-2.5 text-neutral-400 hover:text-[#8B1F32] bg-neutral-50 hover:bg-[#F5EADC]/40 rounded-xl transition-all shadow-sm"
-                title="Refresh"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Buscar Nro de WhatsApp..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+                />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={e => setDateFilter(e.target.value)}
+                  className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+                />
+                <button
+                  onClick={fetchJobs}
+                  className="p-2.5 text-neutral-400 hover:text-[#8B1F32] bg-neutral-50 hover:bg-[#F5EADC]/40 rounded-xl transition-all shadow-sm flex-shrink-0"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -950,14 +998,14 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-50">
-                  {jobs.length === 0 && !loading && (
+                  {paginatedJobs.length === 0 && !loading && (
                     <tr>
                       <td colSpan={8} className="px-6 py-16 text-center text-neutral-400 italic">
                         No se encontraron registros.
                       </td>
                     </tr>
                   )}
-                  {jobs.map((job) => {
+                  {paginatedJobs.map((job) => {
                     const isLimitReached = (job.generaciones || 0) >= 2;
                     return (
                       <tr key={job.id} className="hover:bg-[#F5EADC]/10 transition-colors group">
@@ -1150,6 +1198,45 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-neutral-50 flex items-center justify-between bg-white text-xs">
+                <span className="text-neutral-500 font-medium">
+                  Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredJobs.length)} de {filteredJobs.length} registros
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  >
+                    Anterior
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors flex items-center justify-center ${
+                          currentPage === page
+                            ? 'bg-[#8B1F32] text-white border-[#8B1F32]'
+                            : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
