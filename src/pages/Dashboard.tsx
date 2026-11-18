@@ -21,7 +21,9 @@ import {
   Mic2,
   Sparkles,
   Headphones,
-  Upload
+  Upload,
+  Download,
+  X
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -466,6 +468,46 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleDownload = async (url: string, filename: string) => {
+    const toastId = toast.loading('Descargando archivo...');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Error al descargar');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+      toast.dismiss(toastId);
+    } catch (err) {
+      toast.error("Error al descargar el archivo", { id: toastId });
+    }
+  };
+
+  const handleDeleteFile = async (id: string, type: 'audio' | 'video') => {
+    if (!confirm(`¿Estás seguro de eliminar permanentemente el ${type}?`)) return;
+    try {
+      const res = await fetch('/api/media/delete-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type })
+      });
+      if (res.ok) {
+        toast.success(`${type} eliminado correctamente`);
+        fetchJobs();
+      } else {
+        toast.error(`Error al eliminar ${type}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(`Error al eliminar ${type}`);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -1136,23 +1178,45 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col gap-1.5 w-32">
                           {job.audioUrl && (
-                            <div className="w-24 overflow-hidden rounded-md shrink-0 bg-neutral-100/70 flex items-center">
-                              <audio controls preload="none" className="h-6 w-32 -ml-1 scale-90 origin-left" src={job.audioUrl}></audio>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleDownload(job.audioUrl!, `audio_${job.id}.mp3`)}
+                                className="inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm flex-1"
+                                title="Descargar Audio"
+                              >
+                                <Download className="w-3 h-3" /> Audio
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFile(job.id, 'audio')}
+                                className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                title="Eliminar Audio"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           )}
                           {job.videoUrl && (
-                            <button
-                              onClick={() => window.open(job.videoUrl || '', '_blank')}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#8B1F32]/10 hover:bg-[#8B1F32] text-[#8B1F32] hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all shrink-0 shadow-sm"
-                              title="Ver video"
-                            >
-                              <Video className="w-3 h-3" /> Ver
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleDownload(job.videoUrl!, `video_${job.id}.mp4`)}
+                                className="inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-500 text-indigo-600 hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm flex-1"
+                                title="Descargar Video"
+                              >
+                                <Download className="w-3 h-3" /> Video
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFile(job.id, 'video')}
+                                className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                title="Eliminar Video"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
                           {!job.audioUrl && !job.videoUrl && (
-                            <span className="text-[10px] text-neutral-400 italic">-</span>
+                            <span className="text-[10px] text-neutral-400 italic text-center">-</span>
                           )}
                         </div>
                       </td>
