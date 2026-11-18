@@ -10,6 +10,7 @@ const mapJobRow = (row: any) => ({
   errorLog: row.errorLog || null,
   pago: row.pago || "Pendiente",
   generaciones: Number(row.generaciones ?? 0),
+  voucherUrl: row.voucherUrl || null,
 });
 
 export default defineHandler(async (event) => {
