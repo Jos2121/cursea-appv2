@@ -15,13 +15,14 @@ export default defineHandler(async (event) => {
   // Encontrar archivo y número de whatsapp
   const fileField = formData.find((field) => field.name === "audioFile");
   const whatsappField = formData.find((field) => field.name === "whatsappNumber");
+  const jobIdField = formData.find((field) => field.name === "jobId");
 
   if (!fileField || !fileField.data) {
     throw createError({ statusCode: 400, statusMessage: "No audio file found in request" });
   }
 
-  // Esto convierte los bytes a texto normal ("996...")
   const whatsappNumber = whatsappField ? new TextDecoder().decode(whatsappField.data) : null;
+  const existingJobId = jobIdField ? new TextDecoder().decode(jobIdField.data) : null;
 
   // Directorio de destino
   const mediaDir = path.resolve(process.cwd(), "public/media");
@@ -35,22 +36,26 @@ export default defineHandler(async (event) => {
   // Guardar archivo
   await fs.writeFile(filePath, fileField.data);
 
-  // Crear UUID para el nuevo Job
-  const jobId = randomUUID();
+  let finalJobId = existingJobId || randomUUID();
 
-  // Insertar registro agregando la columna 'recipient' para el UI
-  await pool.query(
-    `INSERT INTO "MediaJob" 
-      (id, status, "audioUrl", source, "whatsappNumber", recipient, prompt, "createdAt", "updatedAt")
-     VALUES 
-      ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) 
-     RETURNING *`,
-    [jobId, 'audio_ready', relativeUrl, 'manual', whatsappNumber, whatsappNumber, 'Subida manual de audio']
-  );
+  if (existingJobId) {
+    await pool.query(
+      `UPDATE "MediaJob" SET "audioUrl" = $1, status = 'audio_ready', "updatedAt" = NOW() WHERE id = $2`,
+      [relativeUrl, existingJobId]
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO "MediaJob" 
+        (id, status, "audioUrl", source, "whatsappNumber", recipient, prompt, "createdAt", "updatedAt")
+       VALUES 
+        ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+      [finalJobId, 'audio_ready', relativeUrl, 'manual', whatsappNumber, whatsappNumber, 'Subida manual de audio']
+    );
+  }
 
   return {
     job: {
-      id: jobId,
+      id: finalJobId,
       audioUrl: relativeUrl
     }
   };

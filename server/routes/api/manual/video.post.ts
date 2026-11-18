@@ -21,11 +21,7 @@ export default defineHandler(async (event) => {
   const job = result.rows[0];
 
   if (!job || !job.audioUrl) {
-    throw createError({ statusCode: 400, statusMessage: "Job not found or missing audioUrl" });
-  }
-
-  if (Number(job.generaciones || 0) >= 2) {
-    throw createError({ statusCode: 403, statusMessage: "Límite de generaciones alcanzado" });
+    throw createError({ statusCode: 400, statusMessage: "Falta generar o subir el audio primero." });
   }
 
   // 2. Localizar archivos y descargar imagen

@@ -20,7 +20,8 @@ import {
   LayoutDashboard,
   Mic2,
   Sparkles,
-  Headphones
+  Headphones,
+  Upload
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -440,6 +441,28 @@ export default function Dashboard() {
     }
   };
 
+  const uploadAudioForJob = async (jobId: string, file: File) => {
+    const toastId = toast.loading('Subiendo audio...');
+    try {
+      const formData = new FormData();
+      formData.append('audioFile', file);
+      formData.append('jobId', jobId);
+      const res = await fetch('/api/manual/upload', {
+        method: 'POST',
+        body: formData
+      });
+      if (res.ok) {
+        toast.success('Audio subido correctamente', { id: toastId });
+        fetchJobs();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.statusMessage || data.message || 'Error al subir audio', { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error de conexión', { id: toastId });
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -462,10 +485,6 @@ export default function Dashboard() {
   // History action: Regenerate Video
   const handleRegenerateVideo = async () => {
     const job = jobs.find(j => j.id === regenerateJobId);
-    if (job && (job.generaciones || 0) >= 2) {
-      toast.error("Límite de generaciones alcanzado (2/2)");
-      return;
-    }
 
     const finalBg = regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl;
     if (!regenerateJobId || !regenerateUserPhotoUrl || !regenerateTitulo || !regenerateArtista || (regenerateBgUrl === 'custom' && !regenerateCustomBg)) return;
@@ -505,11 +524,6 @@ export default function Dashboard() {
   };
 
   const handleGenerateAudioFromHistory = async (job: MediaJob) => {
-    if ((job.generaciones || 0) >= 2) {
-      toast.error("Límite de generaciones alcanzado (2/2)");
-      return;
-    }
-
     setGeneratingAudioId(job.id);
     try {
       const res = await fetch('/api/manual/audio', {
@@ -1044,7 +1058,6 @@ export default function Dashboard() {
                     </tr>
                   )}
                   {paginatedJobs.map((job) => {
-                    const isLimitReached = (job.generaciones || 0) >= 2;
                     return (
                       <tr key={job.id} className="hover:bg-[#F5EADC]/10 transition-colors group">
                       <td className="px-3.5 py-3 whitespace-nowrap">
@@ -1114,7 +1127,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="px-2.5 py-3 whitespace-nowrap text-xs font-bold text-neutral-600 text-center">
-                        {job.generaciones || 0} / 2
+                        {job.generaciones || 0}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${statusColors[job.status]}`}>
@@ -1144,23 +1157,44 @@ export default function Dashboard() {
                         </div>
                       </td>
                       <td className="px-3.5 py-3 whitespace-nowrap text-right space-x-1">
-                        {job.prompt && !job.audioUrl && (
+                        {job.prompt && (
                           <button
                             onClick={() => handleGenerateAudioFromHistory(job)}
-                            disabled={generatingAudioId === job.id || isLimitReached}
+                            disabled={generatingAudioId === job.id}
                             className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all shadow-sm disabled:opacity-40 border border-transparent hover:border-blue-100 disabled:cursor-not-allowed"
-                            title={isLimitReached ? "Límite de generaciones alcanzado" : "Generate Audio"}
+                            title="Generar Audio con IA"
                           >
                             {generatingAudioId === job.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
                           </button>
                         )}
-                        {job.audioUrl && (
+                        
+                        <div className="relative inline-flex items-center">
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            title="Subir Audio Manual"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                await uploadAudioForJob(job.id, file);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
                           <button
-                            disabled={isLimitReached}
-                            onClick={() => {
-                              if (isLimitReached) return;
-                              setRegenerateJobId(job.id);
-                              const bg = job.backgroundUrl || '';
+                            type="button"
+                            className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-emerald-100"
+                            title="Subir Audio Manual"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setRegenerateJobId(job.id);
+                            const bg = job.backgroundUrl || '';
                               setRegenerateBgUrl(bg);
                               setRegenerateCustomBg(bg);
                               setRegenerateUserPhotoUrl(job.userPhotoUrl || '');
@@ -1211,17 +1245,16 @@ export default function Dashboard() {
                                 };
                                 setRegenerateTemplateConfig(newConfig);
                               } else {
-                                setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
-                                setRegenerateDedicatoriaSize(28);
-                              }
-                              handleRegenerateModalOpenChange(true);
-                            }}
-                            className="p-1.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={isLimitReached ? "Límite de generaciones alcanzado" : "Generate Video"}
-                          >
-                            <Video className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                            setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+                            setRegenerateDedicatoriaSize(28);
+                          }
+                          handleRegenerateModalOpenChange(true);
+                        }}
+                        className="p-1.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Configurar y Generar Video"
+                      >
+                        <Video className="w-3.5 h-3.5" />
+                      </button>
                         <button
                           onClick={() => handleDelete(job.id)}
                           className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-rose-100"

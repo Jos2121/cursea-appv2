@@ -34,10 +34,6 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: "Petición original no encontrada. Asegúrate de usar el mismo número de WhatsApp." });
   }
 
-  if (job.generaciones >= 2) {
-    throw createError({ statusCode: 403, statusMessage: "Límite de 2 generaciones alcanzado." });
-  }
-
   // Generamos el nuevo prompt
   const promptGenerado = plan === 'especial'
     ? `[PLAN ESPECIAL - INSPIRADA EN CANCIÓN ORIGINAL]
