@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VideoEditorPreview } from '@/components/VideoEditorPreview';
 import { TemplateConfig } from './Dashboard';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 
 const DEFAULT_CONFIG: TemplateConfig = {
   id: '',
@@ -41,6 +42,7 @@ const DEFAULT_CONFIG: TemplateConfig = {
 };
 
 export default function Landing() {
+  const { appTitle, appLogo } = usePlatformSettings();
   const [searchParams] = useSearchParams();
   const initialPlan = searchParams.get('plan') === 'especial' ? 'especial' : 'estandar';
   const [plan, setPlan] = useState<'estandar' | 'especial'>(initialPlan);
@@ -399,6 +401,18 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#F5EADC] font-sans selection:bg-[#8B1F32]/20">
       
+      {/* BRAND TOP BAR */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-white border border-[#8B1F32]/15 flex items-center justify-center shadow-sm p-1">
+            <img src={appLogo || "/logo.svg"} alt={appTitle} className="w-full h-full object-contain" />
+          </div>
+          <span className="font-serif font-bold text-xl text-neutral-900 tracking-tight">
+            {appTitle}
+          </span>
+        </div>
+      </div>
+
       {/* HEADER SECTION */}
       <header className="pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8B1F32]/10 text-[#8B1F32] font-semibold text-xs uppercase tracking-wider shadow-sm">
@@ -922,7 +936,7 @@ export default function Landing() {
       {/* FOOTER BRanding */}
       <footer className="py-12 border-t border-[#8B1F32]/10 bg-white/50 text-center">
         <p className="text-neutral-400 text-xs font-semibold uppercase tracking-[0.3em]">
-          Qustom Go • Canciones con Alma
+          {appTitle} • Canciones con Alma
         </p>
       </footer>
 

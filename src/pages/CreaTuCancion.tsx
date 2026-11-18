@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 import {
   Play,
   Pause,
@@ -26,6 +27,7 @@ import {
 import { toast } from 'sonner';
 
 export default function CreaTuCancion() {
+  const { appTitle, appLogo } = usePlatformSettings();
   const navigate = useNavigate();
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [currency, setCurrency] = useState<'PEN' | 'USD'>('PEN');
@@ -227,11 +229,11 @@ export default function CreaTuCancion() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white border border-[#8B1F32]/15 flex items-center justify-center shadow-sm p-1">
-              <img src="/logo.svg" alt="Qustom Go" className="w-full h-full object-contain" />
+              <img src={appLogo || "/logo.svg"} alt={appTitle} className="w-full h-full object-contain" />
             </div>
             <div className="leading-tight">
               <span className="font-serif font-bold text-lg text-neutral-900 tracking-tight block">
-                Qustom Go
+                {appTitle}
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8B1F32] block">
                 Estudio Musical
@@ -961,7 +963,7 @@ export default function CreaTuCancion() {
 
       <footer className="py-8 bg-white border-t border-neutral-100 text-center px-4">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
-          © {new Date().getFullYear()} Qustom Go • Canciones con Alma
+          © {new Date().getFullYear()} {appTitle} • Canciones con Alma
         </p>
       </footer>
     </div>

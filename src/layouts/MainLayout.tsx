@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, LogOut, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { appTitle, appLogo, openEditModal } = usePlatformSettings();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -39,16 +41,27 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           "h-16 flex items-center border-b border-neutral-50 overflow-hidden transition-all duration-500",
           isCollapsed ? "px-5" : "px-6"
         )}>
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-neutral-100 shadow-sm p-1">
-              <img src="/logo.svg" alt="Qustom Go" className="w-full h-full object-contain" />
+          <button
+            onClick={openEditModal}
+            type="button"
+            className="group/brand flex items-center space-x-3 shrink-0 text-left hover:opacity-90 transition-all cursor-pointer p-1 -m-1 rounded-xl hover:bg-neutral-50/80"
+            title="Clic para editar título y logo de la plataforma"
+          >
+            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-neutral-100 shadow-sm p-1 shrink-0">
+              <img src={appLogo || "/logo.svg"} alt={appTitle} className="w-full h-full object-contain" />
+              <div className="absolute inset-0 bg-[#8B1F32]/20 rounded-lg opacity-0 group-hover/brand:opacity-100 transition-opacity flex items-center justify-center">
+                <Edit2 className="w-3 h-3 text-[#8B1F32]" />
+              </div>
             </div>
             {!isCollapsed && (
-              <span className="text-lg font-serif font-bold text-neutral-900 tracking-tight whitespace-nowrap opacity-100 transition-opacity duration-300">
-                Qustom Go
-              </span>
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <span className="text-lg font-serif font-bold text-neutral-900 tracking-tight truncate max-w-[140px] opacity-100 transition-opacity duration-300">
+                  {appTitle}
+                </span>
+                <Edit2 className="w-3 h-3 text-neutral-300 group-hover/brand:text-[#8B1F32] transition-colors shrink-0" />
+              </div>
             )}
-          </div>
+          </button>
         </div>
 
         <nav className="flex-1 px-4 py-8 space-y-3 overflow-hidden">

@@ -6,7 +6,9 @@ import Landing from './pages/Landing';
 import CreaTuCancion from './pages/CreaTuCancion';
 import MediosPago from './pages/MediosPago';
 import MainLayout from './layouts/MainLayout';
-import { Toaster } from "@/components/ui/sonner"; // Assuming sonner is available or will create
+import { Toaster } from "@/components/ui/sonner";
+import { PlatformSettingsProvider } from './context/PlatformSettingsContext';
+import { EditPlatformModal } from './components/EditPlatformModal';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -25,27 +27,30 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <Toaster />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        {/* Swapped Routes */}
-        <Route path="/crea-tu-cancion" element={<Landing />} />
-        <Route path="/landing" element={<CreaTuCancion />} />
-        <Route path="/medios-pago" element={<MediosPago />} />
+    <PlatformSettingsProvider>
+      <BrowserRouter>
+        <ScrollToTop />
+        <Toaster />
+        <EditPlatformModal />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          {/* Swapped Routes */}
+          <Route path="/crea-tu-cancion" element={<Landing />} />
+          <Route path="/landing" element={<CreaTuCancion />} />
+          <Route path="/medios-pago" element={<MediosPago />} />
 
-        {/* Private Routes wrapped in MainLayout */}
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+          {/* Private Routes wrapped in MainLayout */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </PlatformSettingsProvider>
   );
 }

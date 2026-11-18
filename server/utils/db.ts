@@ -47,6 +47,18 @@ export function ensureSchema(): Promise<void> {
       } catch (e) {
         console.warn("Schema check warning (CustomTemplate):", e);
       }
+
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS "PlatformSettings" (
+            key VARCHAR(100) PRIMARY KEY,
+            value TEXT NOT NULL,
+            "updatedAt" TIMESTAMP DEFAULT NOW()
+          );
+        `);
+      } catch (e) {
+        console.warn("Schema check warning (PlatformSettings):", e);
+      }
     })();
   }
   return schemaReadyPromise;

@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 
 type JobStatus = 'pending' | 'pendiente' | 'audio_ready' | 'video_ready' | 'sent' | 'error';
 
@@ -99,6 +100,7 @@ const statusIcons: Record<JobStatus, React.ReactNode> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { appTitle, openEditModal } = usePlatformSettings();
   const [activeTab, setActiveTab] = useState<'history' | 'studio'>('history');
   
   // History state
@@ -996,7 +998,16 @@ export default function Dashboard() {
             <LayoutDashboard className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">Platform Admin</span>
           </div>
-          <h1 className="text-3xl font-serif font-bold tracking-tight">Qustom Go</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl font-serif font-bold tracking-tight">{appTitle}</h1>
+            <button
+              onClick={openEditModal}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-[#8B1F32] hover:bg-white shadow-sm transition-all"
+              title="Editar nombre y logo de la plataforma"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
           <p className="text-sm text-neutral-600">Gestión y control de producción musical.</p>
         </div>
 

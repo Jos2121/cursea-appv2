@@ -4,12 +4,14 @@ import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 
 export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { appTitle, appLogo } = usePlatformSettings();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,12 +51,12 @@ export default function Login() {
       <div className="z-10 w-full max-w-md p-10 bg-white border border-[#8B1F32]/10 rounded-[40px] shadow-2xl space-y-8">
         <div className="flex flex-col items-center">
           <div className="relative flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-neutral-100 shadow-md mb-6 p-3">
-            <img src="/logo.svg" alt="Qustom Go" className="w-full h-full object-contain" />
+            <img src={appLogo || "/logo.svg"} alt={appTitle} className="w-full h-full object-contain" />
             <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-neutral-100">
               <Sparkles className="w-3.5 h-3.5 text-[#8B1F32]" />
             </div>
           </div>
-          <h1 className="text-3xl font-serif font-bold text-neutral-900 tracking-tight">Qustom Go</h1>
+          <h1 className="text-3xl font-serif font-bold text-neutral-900 tracking-tight">{appTitle}</h1>
           <p className="text-neutral-400 text-xs font-bold uppercase tracking-[0.3em] mt-2">Admin Portal</p>
         </div>
 
@@ -87,7 +89,7 @@ export default function Login() {
 
         <div className="pt-4 text-center">
           <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">
-            © {new Date().getFullYear()} • Qustom Go
+            © {new Date().getFullYear()} • {appTitle}
           </p>
         </div>
       </div>

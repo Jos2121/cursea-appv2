@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { UploadCloud, CheckCircle2, QrCode, CreditCard, Building, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePlatformSettings } from '@/context/PlatformSettingsContext';
 
 export default function MediosPago() {
+  const { appTitle, appLogo } = usePlatformSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [instructions, setInstructions] = useState("Transfiere a nuestra cuenta bancaria y adjunta el comprobante para comenzar a producir tu canción.");
@@ -129,6 +131,16 @@ export default function MediosPago() {
   return (
     <div className="min-h-screen bg-[#F5EADC] text-neutral-900 font-sans py-12 px-6 lg:px-8 flex flex-col items-center justify-center">
       
+      {/* Brand Navbar */}
+      <div className="max-w-4xl w-full flex items-center justify-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-white border border-[#8B1F32]/15 flex items-center justify-center shadow-sm p-1">
+          <img src={appLogo || "/logo.svg"} alt={appTitle} className="w-full h-full object-contain" />
+        </div>
+        <span className="font-serif font-bold text-2xl text-neutral-900 tracking-tight">
+          {appTitle}
+        </span>
+      </div>
+
       {/* Header */}
       <div className="max-w-4xl w-full text-center mb-12">
         <span className="text-sm font-bold uppercase tracking-widest text-[#8B1F32] mb-2 block">
@@ -259,6 +271,12 @@ export default function MediosPago() {
         </div>
 
       </div>
+
+      <footer className="mt-12 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+          © {new Date().getFullYear()} {appTitle}
+        </p>
+      </footer>
     </div>
   );
 }
