@@ -1,0 +1,1831 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import {
+  LogOut,
+  Play,
+  Settings,
+  RefreshCw,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Video,
+  Music,
+  Send,
+  ChevronsUpDown,
+  Check,
+  ImagePlus,
+  ChevronDown,
+  LayoutDashboard,
+  Mic2,
+  Sparkles,
+  Headphones
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { VideoEditorPreview } from '../components/VideoEditorPreview';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+type JobStatus = 'pending' | 'pendiente' | 'audio_ready' | 'video_ready' | 'sent' | 'error';
+
+interface MediaJob {
+  id: string;
+  source: string;
+  prompt: string;
+  status: JobStatus;
+  audioUrl: string | null;
+  videoUrl: string | null;
+  imageUrl: string | null;
+  recipient: string | null;
+  errorLog: string | null;
+  createdAt: string;
+  backgroundUrl?: string;
+  userPhotoUrl?: string;
+  titulo?: string;
+  artista?: string;
+  dedicatoria?: string;
+  config?: any;
+  whatsappNumber?: string;
+  pago?: string;
+  generaciones?: number;
+}
+
+export interface TemplateConfig {
+  id: string;
+  name: string;
+  bgUrl: string;
+  type?: 'completa' | 'coordenadas';
+  photo: { x: number; y: number; w: number; h: number };
+  titulo: { x: number; y: number; fontSize: number; color: string; align: 'left' | 'center' };
+  artista: { x: number; y: number; fontSize: number; color: string; align: 'left' | 'center' };
+  dedicatoria: { x: number; y: number; fontSize: number; color: string; align: 'left' | 'center' };
+}
+
+export const DEFAULT_TEMPLATE: TemplateConfig = {
+  id: '',
+  name: 'Plantilla por Defecto',
+  bgUrl: '',
+  photo: { x: 130, y: 180, w: 820, h: 820 },
+  titulo: { x: 130, y: 1040, fontSize: 42, color: 'white', align: 'left' },
+  artista: { x: 130, y: 1095, fontSize: 30, color: '#B3B3B3', align: 'left' },
+  dedicatoria: { x: 540, y: 1620, fontSize: 28, color: '#E5E5E5', align: 'center' },
+};
+
+const statusColors: Record<JobStatus, string> = {
+  pending: 'bg-amber-100 text-amber-700 border-amber-200',
+  pendiente: 'bg-amber-100 text-amber-700 border-amber-200',
+  audio_ready: 'bg-blue-100 text-blue-700 border-blue-200',
+  video_ready: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  sent: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  error: 'bg-rose-100 text-rose-700 border-rose-200',
+};
+
+const statusIcons: Record<JobStatus, React.ReactNode> = {
+  pending: <Clock className="w-3 h-3 mr-1" />,
+  pendiente: <Clock className="w-3 h-3 mr-1" />,
+  audio_ready: <Music className="w-3 h-3 mr-1" />,
+  video_ready: <Video className="w-3 h-3 mr-1" />,
+  sent: <CheckCircle2 className="w-3 h-3 mr-1" />,
+  error: <AlertCircle className="w-3 h-3 mr-1" />,
+};
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'history' | 'studio'>('history');
+  
+  // History state
+  const [jobs, setJobs] = useState<MediaJob[]>([]);
+  const [totalJobs, setTotalJobs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [generatingAudioId, setGeneratingAudioId] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // History search, filter, and pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [editingPromptValue, setEditingPromptValue] = useState('');
+  const [isUpdatingPrompt, setIsUpdatingPrompt] = useState(false);
+
+  // Regenerate Video Modal State
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  const [regenerateJobId, setRegenerateJobId] = useState<string | null>(null);
+  const [regenerateBgUrl, setRegenerateBgUrl] = useState('');
+  const [regenerateCustomBg, setRegenerateCustomBg] = useState('');
+  const [regenerateUserPhotoUrl, setRegenerateUserPhotoUrl] = useState('');
+  const [regenerateTitulo, setRegenerateTitulo] = useState('');
+  const [regenerateArtista, setRegenerateArtista] = useState('');
+  const [regenerateDedicatoria, setRegenerateDedicatoria] = useState('');
+  const [regenerateDedicatoriaSize, setRegenerateDedicatoriaSize] = useState(28);
+  const [regenerateTemplateConfig, setRegenerateTemplateConfig] = useState<TemplateConfig>(DEFAULT_TEMPLATE);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [paymentQrUrl, setPaymentQrUrl] = useState('');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('paymentSettings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setPaymentInstructions(parsed.instructions || '');
+        setPaymentQrUrl(parsed.qrUrl || '');
+      }
+    } catch(e) {}
+  }, []);
+
+  // Template Modal State
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templateBgUrl, setTemplateBgUrl] = useState('');
+  const [templateCustomBg, setTemplateCustomBg] = useState('');
+  const [templateUserPhotoUrl, setTemplateUserPhotoUrl] = useState('');
+  const [templateTitulo, setTemplateTitulo] = useState('');
+  const [templateArtista, setTemplateArtista] = useState('');
+  const [templateDedicatoria, setTemplateDedicatoria] = useState('');
+  const [templateDedicatoriaSize, setTemplateDedicatoriaSize] = useState(28);
+  const [templateConfig, setTemplateConfig] = useState<TemplateConfig>(DEFAULT_TEMPLATE);
+  
+  // Combobox and Modals State
+  const [isRegenAddBgModalOpen, setIsRegenAddBgModalOpen] = useState(false);
+  const [regenNewBgUrl, setRegenNewBgUrl] = useState('');
+  const [isStudioAddBgModalOpen, setIsStudioAddBgModalOpen] = useState(false);
+  const [studioNewBgUrl, setStudioNewBgUrl] = useState('');
+
+  // Studio state
+  const [studioStep, setStudioStep] = useState(1);
+  const [studioJobId, setStudioJobId] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [studioMode, setStudioMode] = useState<'create' | 'upload'>('create');
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
+  
+  // Studio Step 2 (Video Player 9:16 fields)
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [backgroundUrl, setBackgroundUrl] = useState('');
+  const [customBackground, setCustomBackground] = useState('');
+  const [userPhotoUrl, setUserPhotoUrl] = useState('');
+  const [titulo, setTitulo] = useState('');
+  const [artista, setArtista] = useState('');
+  const [dedicatoria, setDedicatoria] = useState('');
+  const [dedicatoriaSize, setDedicatoriaSize] = useState(28); 
+  const [studioTemplateConfig, setStudioTemplateConfig] = useState<TemplateConfig>({ ...DEFAULT_TEMPLATE, id: '' });
+  
+  // Custom Templates from DB
+  const [dbTemplates, setDbTemplates] = useState<TemplateConfig[]>([]);
+
+  const resetRegenerateForm = () => {
+    setRegenerateJobId(null);
+    setRegenerateBgUrl('');
+    setRegenerateCustomBg('');
+    setRegenerateUserPhotoUrl('');
+    setRegenerateTitulo('');
+    setRegenerateArtista('');
+    setRegenerateDedicatoria('');
+    setRegenerateDedicatoriaSize(28);
+    setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+  };
+
+  const handleRegenerateModalOpenChange = (open: boolean) => {
+    setIsRegenerateModalOpen(open);
+    if (!open) resetRegenerateForm();
+  };
+
+  const resetTemplateForm = () => {
+    setTemplateBgUrl('');
+    setTemplateCustomBg('');
+    setTemplateUserPhotoUrl('https://placehold.co/400x400/eeeeee/999999?text=Portada');
+    setTemplateTitulo('Título Muestra');
+    setTemplateArtista('Artista Muestra');
+    setTemplateDedicatoria('Dedicatoria de muestra...');
+    setTemplateDedicatoriaSize(28);
+    setTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+  };
+
+  const handleTemplateModalOpenChange = (open: boolean) => {
+    setIsTemplateModalOpen(open);
+    if (!open) resetTemplateForm();
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        setDbTemplates(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const handleSaveTemplate = async (config: TemplateConfig, bgUrl: string, dedicatoriaSz: number, mode: 'completa' | 'coordenadas') => {
+    const promptedName = window.prompt(`Nombre de la nueva plantilla (${mode}):`);
+    if (promptedName === null) return;
+    const templateName = promptedName.trim() || 'Mi Plantilla Personalizada';
+    
+    try {
+      let payloadConfig: any = {
+        type: mode,
+        photoX: Number(config.photo.x),
+        photoY: Number(config.photo.y),
+        photoWidth: Number(config.photo.w),
+        photoHeight: Number(config.photo.h),
+        tituloX: Number(config.titulo.x),
+        tituloY: Number(config.titulo.y),
+        tituloSize: Number(config.titulo.fontSize),
+        artistaX: Number(config.artista.x),
+        artistaY: Number(config.artista.y),
+        artistaSize: Number(config.artista.fontSize),
+        dedicatoriaX: Number(config.dedicatoria.x),
+        dedicatoriaY: Number(config.dedicatoria.y),
+        dedicatoriaSize: Number(dedicatoriaSz),
+        ...(mode === 'completa' ? { backgroundUrl: bgUrl, bgUrl: bgUrl } : {}),
+        photo: { ...config.photo, x: Number(config.photo.x), y: Number(config.photo.y), w: Number(config.photo.w), h: Number(config.photo.h) },
+        titulo: { ...config.titulo, x: Number(config.titulo.x), y: Number(config.titulo.y), fontSize: Number(config.titulo.fontSize) },
+        artista: { ...config.artista, x: Number(config.artista.x), y: Number(config.artista.y), fontSize: Number(config.artista.fontSize) },
+        dedicatoria: { ...config.dedicatoria, x: Number(config.dedicatoria.x), y: Number(config.dedicatoria.y), fontSize: Number(dedicatoriaSz) }
+      };
+
+      const res = await fetch('/api/templates/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          name: templateName,
+          config: payloadConfig
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success('Plantilla guardada!');
+        loadTemplates();
+      } else {
+        toast.error(`Error al guardar plantilla: ${data.statusMessage || data.message || 'Error desconocido'}`);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`Error al guardar: ${e.message || 'Error de red'}`);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!templateId) return toast.error("Error: ID inválido");
+    
+    try {
+      const res = await fetch('/api/templates/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: templateId })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.statusMessage || "Error desconocido al eliminar");
+      }
+
+      setDbTemplates(prev => prev.filter(t => t.id !== templateId));
+      
+      if (studioTemplateConfig.id === templateId) {
+        setStudioTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+        setBackgroundUrl('');
+        setCustomBackground('');
+      }
+      
+      if (regenerateTemplateConfig.id === templateId) {
+        setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+        setRegenerateBgUrl('');
+        setRegenerateCustomBg('');
+      }
+      
+      toast.success("Éxito: Plantilla eliminada permanentemente.");
+    } catch (error: any) {
+      console.error("Error UI:", error);
+      toast.error(`Error al eliminar: ${error.message}`);
+    }
+  };
+  
+  // Studio State
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [studioAudioUrl, setStudioAudioUrl] = useState<string | null>(null);
+  const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
+
+  // Load Studio State from LocalStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('curseaDigitalStudioState');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.studioStep) setStudioStep(parsed.studioStep);
+        if (parsed.studioJobId) setStudioJobId(parsed.studioJobId);
+        if (parsed.prompt) setPrompt(parsed.prompt);
+        if (parsed.backgroundUrl) setBackgroundUrl(parsed.backgroundUrl);
+        if (parsed.customBackground) setCustomBackground(parsed.customBackground);
+        if (parsed.userPhotoUrl) setUserPhotoUrl(parsed.userPhotoUrl);
+        if (parsed.titulo) setTitulo(parsed.titulo);
+        if (parsed.artista) setArtista(parsed.artista);
+        if (parsed.dedicatoria) setDedicatoria(parsed.dedicatoria);
+        if (parsed.dedicatoriaSize) setDedicatoriaSize(parsed.dedicatoriaSize);
+        if (parsed.studioAudioUrl) setStudioAudioUrl(parsed.studioAudioUrl);
+        if (parsed.studioVideoUrl) setStudioVideoUrl(parsed.studioVideoUrl);
+      } catch (e) {
+        console.error("Failed to parse studio state from localStorage", e);
+      }
+    }
+  }, []);
+
+  // Save Studio State to LocalStorage (debounced & skipping heavy base64 strings)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const safePhoto = userPhotoUrl.startsWith('data:') ? '' : userPhotoUrl;
+      const stateToSave = {
+        studioStep,
+        studioJobId,
+        prompt,
+        backgroundUrl,
+        customBackground,
+        userPhotoUrl: safePhoto,
+        titulo,
+        artista,
+        dedicatoria,
+        dedicatoriaSize,
+        studioAudioUrl,
+        studioVideoUrl,
+      };
+      try {
+        localStorage.setItem('curseaDigitalStudioState', JSON.stringify(stateToSave));
+      } catch (e) {
+        console.warn("Could not persist studio state:", e);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [
+    studioStep, studioJobId, prompt, backgroundUrl, customBackground,
+    userPhotoUrl, titulo, artista, dedicatoria, dedicatoriaSize, studioAudioUrl, studioVideoUrl
+  ]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchJobs = async (page = currentPage, search = debouncedSearch, date = dateFilter) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(itemsPerPage),
+      });
+      if (search.trim()) params.set('search', search.trim());
+      if (date) params.set('date', date);
+
+      const res = await fetch(`/api/media/jobs?${params.toString()}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setJobs(data);
+        setTotalJobs(data.length);
+        setTotalPages(Math.max(1, Math.ceil(data.length / itemsPerPage)));
+      } else {
+        setJobs(Array.isArray(data.items) ? data.items : []);
+        setTotalJobs(Number(data.total ?? 0));
+        setTotalPages(Math.max(1, Number(data.totalPages ?? 1)));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchJobs(currentPage, debouncedSearch, dateFilter);
+    }
+  }, [activeTab, currentPage, debouncedSearch, dateFilter]);
+
+  const uploadCoverImage = async (file: File, onUrl: (url: string) => void) => {
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error("La imagen no puede pesar más de 6MB");
+      return;
+    }
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/public/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.statusMessage || 'Error al subir la imagen');
+      onUrl(data.url);
+      toast.success('Imagen subida correctamente');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al subir la imagen');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this job and its files?')) return;
+    try {
+      await fetch('/api/media/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      fetchJobs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // History action: Regenerate Video
+  const handleRegenerateVideo = async () => {
+    const job = jobs.find(j => j.id === regenerateJobId);
+    if (job && (job.generaciones || 0) >= 2) {
+      toast.error("Límite de generaciones alcanzado (2/2)");
+      return;
+    }
+
+    const finalBg = regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl;
+    if (!regenerateJobId || !regenerateUserPhotoUrl || !regenerateTitulo || !regenerateArtista || (regenerateBgUrl === 'custom' && !regenerateCustomBg)) return;
+    setIsRegenerating(true);
+
+    try {
+      const res = await fetch('/api/manual/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: regenerateJobId,
+          backgroundUrl: finalBg,
+          userPhotoUrl: regenerateUserPhotoUrl,
+          titulo: regenerateTitulo,
+          artista: regenerateArtista,
+          dedicatoria: regenerateDedicatoria,
+          dedicatoriaSize: regenerateDedicatoriaSize,
+          templateConfig: regenerateTemplateConfig
+        })
+      });
+      
+      const data = await res.json().catch(() => ({}));
+      
+      if (res.ok) {
+        handleRegenerateModalOpenChange(false);
+        fetchJobs();
+        toast.success('Video generado correctamente');
+      } else {
+        toast.error(`Failed to generate video: ${data.statusMessage || data.message || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Error: ${err.message || 'Network error occurred'}`);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handleGenerateAudioFromHistory = async (job: MediaJob) => {
+    if ((job.generaciones || 0) >= 2) {
+      toast.error("Límite de generaciones alcanzado (2/2)");
+      return;
+    }
+
+    setGeneratingAudioId(job.id);
+    try {
+      const res = await fetch('/api/manual/audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: job.prompt, jobId: job.id })
+      });
+      
+      if (res.ok) {
+        fetchJobs();
+        toast.success('Audio generado correctamente');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(`Error al generar audio: ${data.statusMessage || data.message || 'Error desconocido'}`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Error: ${err.message || 'Error de red'}`);
+    } finally {
+      setGeneratingAudioId(null);
+    }
+  };
+
+  // Studio Handlers
+  const handleSubmit = async () => {
+    if (studioMode === 'create' && !prompt) {
+      toast.error('Por favor, ingresa un prompt para generar la canción.');
+      return;
+    }
+    if (studioMode === 'upload' && !selectedAudioFile) {
+      toast.error('Por favor, selecciona un archivo de audio.');
+      return;
+    }
+    
+    const finalBg = backgroundUrl === 'custom' ? customBackground : backgroundUrl;
+    if (!whatsappNumber || !userPhotoUrl || !titulo || !artista) {
+      toast.error('Por favor, completa todos los campos requeridos (Número, Portada, Título, Artista).');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      console.log("Iniciando proceso...");
+      let currentJobId = studioJobId;
+
+      // NUEVO: Forzar ID nuevo si el flujo anterior ya se completó
+      if (studioStep === 3) {
+        currentJobId = null;
+      }
+
+      if (!currentJobId) {
+        if (studioMode === 'create') {
+          console.log("Creando canción con OpenRouter...");
+          const resAudio = await fetch('/api/manual/audio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, whatsappNumber })
+          });
+          const dataAudio = await resAudio.json();
+          
+          if (!resAudio.ok) throw new Error(dataAudio.message || 'Error al generar audio en OpenRouter');
+          
+          currentJobId = dataAudio.job?.id || dataAudio.id || dataAudio.jobId;
+          setStudioJobId(currentJobId);
+          setStudioAudioUrl(dataAudio.job?.audioUrl || dataAudio.audioUrl);
+        } else if (studioMode === 'upload') {
+          console.log("Subiendo archivo de audio local...");
+          const formData = new FormData();
+          formData.append('audioFile', selectedAudioFile!);
+          if (whatsappNumber) formData.append('whatsappNumber', whatsappNumber);
+          
+          const resUpload = await fetch('/api/manual/upload', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const dataUpload = await resUpload.json();
+          console.log("Respuesta de subida:", dataUpload);
+          
+          if (!resUpload.ok) throw new Error(dataUpload.message || 'Error al subir el archivo');
+          
+          currentJobId = dataUpload.job?.id || dataUpload.id || dataUpload.jobId || dataUpload.mediaJob?.id;
+          setStudioJobId(currentJobId);
+          setStudioAudioUrl(dataUpload.job?.audioUrl || dataUpload.audioUrl || dataUpload.mediaJob?.audioUrl);
+        }
+      }
+
+      if (!currentJobId) {
+        throw new Error('El servidor recibió el audio, pero no devolvió un ID de trabajo válido para generar el video.');
+      }
+
+      console.log("Generando video para el Job ID:", currentJobId);
+      const resVideo = await fetch('/api/manual/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: currentJobId,
+          backgroundUrl: finalBg,
+          userPhotoUrl,
+          titulo,
+          artista,
+          dedicatoria,
+          dedicatoriaSize,
+          templateConfig: studioTemplateConfig,
+          whatsappNumber
+        })
+      });
+
+      const dataVideo = await resVideo.json();
+      console.log("Respuesta de video:", dataVideo);
+      
+      if (!resVideo.ok) throw new Error(dataVideo.message || 'Error al generar el video');
+
+      if (dataVideo.job) {
+        setStudioVideoUrl(dataVideo.job.videoUrl || dataVideo.videoUrl);
+      } else if (dataVideo.videoUrl) {
+        setStudioVideoUrl(dataVideo.videoUrl);
+      }
+
+      console.log("Actualizando tabla de historial...");
+      await fetchJobs();
+      setStudioStep(3);
+      toast.success('¡Proceso completado exitosamente!');
+      
+      setActiveTab('history');
+
+    } catch (err: any) {
+      console.error("Error en la cadena de ejecución:", err);
+      toast.error(`Error: ${err.message || 'Ocurrió un error inesperado al procesar'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleResetStudio = () => {
+    setStudioStep(1);
+    setStudioJobId(null);
+    setPrompt('');
+    setWhatsappNumber('');
+    setBackgroundUrl('');
+    setCustomBackground('');
+    setUserPhotoUrl('');
+    setTitulo('');
+    setArtista('');
+    setDedicatoria('');
+    setStudioAudioUrl(null);
+    setStudioVideoUrl(null);
+    setStudioTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+    localStorage.removeItem('curseaDigitalStudioState');
+  };
+
+  const renderTemplateSelector = (
+    currentConfigId: string,
+    setConfig: (config: TemplateConfig) => void,
+    setBg: (bg: string) => void,
+    setCustomBg: (bg: string) => void,
+    setPhotoUrl: (url: string) => void,
+    isProcessing: boolean,
+    setDedicatoriaSizeState?: (size: number) => void
+  ) => {
+    const templatesWithBg = dbTemplates.filter(t => {
+      const parsedConfig = (t as any).config || t;
+      return parsedConfig.type !== 'coordenadas' && (parsedConfig.backgroundUrl || parsedConfig.bgUrl || t.bgUrl);
+    });
+
+    const templatesWithoutBg = dbTemplates.filter(t => {
+      const parsedConfig = (t as any).config || t;
+      return parsedConfig.type === 'coordenadas' || (!parsedConfig.backgroundUrl && !parsedConfig.bgUrl && !t.bgUrl);
+    });
+
+    const handleSelect = (t: any) => {
+      const parsedConfig = (t as any).config || t;
+      const configData = typeof parsedConfig === 'string' ? JSON.parse(parsedConfig) : parsedConfig;
+      const isCoords = configData.type === 'coordenadas';
+      
+      if (!isCoords) {
+        const bg = configData.backgroundUrl || configData.bgUrl || t.bgUrl;
+        if (bg !== undefined) {
+          const trimmedBg = String(bg).trim();
+          setBg(trimmedBg);
+          setCustomBg(trimmedBg);
+        }
+      }
+      
+      if (configData.photoUrl !== undefined) {
+        setPhotoUrl(String(configData.photoUrl).trim());
+      }
+      
+      const nextConfig = { ...JSON.parse(JSON.stringify(configData)), id: t.id };
+      
+      if (nextConfig.photoUrl !== undefined) {
+        nextConfig.photoUrl = String(nextConfig.photoUrl).trim();
+      }
+      if (nextConfig.backgroundUrl !== undefined) {
+        nextConfig.backgroundUrl = String(nextConfig.backgroundUrl).trim();
+      }
+      if (nextConfig.bgUrl !== undefined) {
+        nextConfig.bgUrl = String(nextConfig.bgUrl).trim();
+      }
+      
+      if (!nextConfig.dedicatoria) {
+        nextConfig.dedicatoria = { ...DEFAULT_TEMPLATE.dedicatoria };
+      }
+      
+      if (configData.dedicatoriaX !== undefined) nextConfig.dedicatoria.x = Number(configData.dedicatoriaX);
+      else if (configData.dedicatoryX !== undefined) nextConfig.dedicatoria.x = Number(configData.dedicatoryX);
+
+      if (configData.dedicatoriaY !== undefined) nextConfig.dedicatoria.y = Number(configData.dedicatoriaY);
+      else if (configData.dedicatoryY !== undefined) nextConfig.dedicatoria.y = Number(configData.dedicatoryY);
+
+      let dedicatoriaSz = nextConfig.dedicatoria.fontSize;
+      if (configData.dedicatoriaSize !== undefined) dedicatoriaSz = Number(configData.dedicatoriaSize);
+      else if (configData.dedicatorySize !== undefined) dedicatoriaSz = Number(configData.dedicatorySize);
+      
+      nextConfig.dedicatoria.fontSize = dedicatoriaSz;
+      
+      if (setDedicatoriaSizeState) {
+        setDedicatoriaSizeState(dedicatoriaSz);
+      }
+
+      setConfig(nextConfig);
+    };
+
+    return (
+      <div className="flex gap-2 mb-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger disabled={isProcessing} className="flex items-center justify-between w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 focus:outline-none focus:ring-1 focus:ring-[#8B1F32] focus:border-[#8B1F32] disabled:opacity-50 text-left h-12 shadow-sm">
+            <span className="truncate">
+              {currentConfigId
+                ? dbTemplates.find(x => x.id === currentConfigId)?.name || 'Plantilla seleccionada'
+                : "Seleccionar plantilla..."}
+            </span>
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-neutral-400" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[320px] bg-white border-neutral-200 max-h-64 overflow-y-auto rounded-xl">
+            {dbTemplates.length === 0 ? (
+              <div className="p-4 text-sm text-neutral-500 text-center">No hay plantillas.</div>
+            ) : (
+              <>
+                {templatesWithBg.length > 0 && (
+                  <>
+                    <DropdownMenuLabel className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider px-3 py-2">
+                      Fondo + Posiciones
+                    </DropdownMenuLabel>
+                    {templatesWithBg.map(t => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onClick={() => handleSelect(t)}
+                        className="flex items-center justify-between cursor-pointer py-2.5 px-3 text-neutral-800 hover:bg-[#F5EADC]/40 focus:bg-[#F5EADC]/40"
+                      >
+                        <div className="flex items-center truncate mr-2 w-full">
+                          <Check className={`mr-2 h-4 w-4 shrink-0 text-[#8B1F32] ${currentConfigId === t.id ? "opacity-100" : "opacity-0"}`} />
+                          <span className="truncate">{t.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteTemplate(t.id); }}
+                          className="p-1.5 hover:bg-rose-100 text-neutral-400 hover:text-rose-600 rounded-md transition-colors shrink-0 z-10"
+                          title="Eliminar plantilla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+                
+                {templatesWithBg.length > 0 && templatesWithoutBg.length > 0 && (
+                  <DropdownMenuSeparator className="bg-neutral-100" />
+                )}
+
+                {templatesWithoutBg.length > 0 && (
+                  <>
+                    <DropdownMenuLabel className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider px-3 py-2">
+                      Solo Posiciones
+                    </DropdownMenuLabel>
+                    {templatesWithoutBg.map(t => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onClick={() => handleSelect(t)}
+                        className="flex items-center justify-between cursor-pointer py-2.5 px-3 text-neutral-800 hover:bg-[#F5EADC]/40 focus:bg-[#F5EADC]/40"
+                      >
+                        <div className="flex items-center truncate mr-2 w-full">
+                          <Check className={`mr-2 h-4 w-4 shrink-0 text-[#8B1F32]/70 ${currentConfigId === t.id ? "opacity-100" : "opacity-0"}`} />
+                          <span className="truncate">{t.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteTemplate(t.id); }}
+                          className="p-1.5 hover:bg-rose-100 text-neutral-400 hover:text-rose-600 rounded-md transition-colors shrink-0 z-10"
+                          title="Eliminar plantilla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
+
+  const renderConfigControls = (config: TemplateConfig, setConfig: any, key: 'titulo'|'artista'|'dedicatoria', extSizeState?: number, setExtSizeState?: any) => (
+    <div className="flex gap-2 mt-2">
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">X:</span>
+        <input
+          type="number"
+          value={config[key].align === 'center' ? '' : config[key].x}
+          onChange={(e) => setConfig({...config, [key]: {...config[key], x: Number(e.target.value), align: 'left'}})}
+          className="w-16 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+          placeholder="Ctr"
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">Y:</span>
+        <input
+          type="number"
+          value={config[key].y}
+          onChange={(e) => setConfig({...config, [key]: {...config[key], y: Number(e.target.value)}})}
+          className="w-16 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">Size:</span>
+        <input
+          type="number"
+          value={extSizeState !== undefined ? extSizeState : config[key].fontSize}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            setConfig({...config, [key]: {...config[key], fontSize: val}});
+            if (setExtSizeState) setExtSizeState(val);
+          }}
+          className="w-16 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+    </div>
+  );
+
+  const renderPhotoControls = (config: TemplateConfig, setConfig: any) => (
+    <div className="flex gap-2 mt-2">
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">X:</span>
+        <input
+          type="number"
+          value={config.photo.x}
+          onChange={(e) => setConfig({...config, photo: {...config.photo, x: Number(e.target.value)}})}
+          className="w-14 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">Y:</span>
+        <input
+          type="number"
+          value={config.photo.y}
+          onChange={(e) => setConfig({...config, photo: {...config.photo, y: Number(e.target.value)}})}
+          className="w-14 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">W:</span>
+        <input
+          type="number"
+          value={config.photo.w}
+          onChange={(e) => setConfig({...config, photo: {...config.photo, w: Number(e.target.value)}})}
+          className="w-14 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold">H:</span>
+        <input
+          type="number"
+          value={config.photo.h}
+          onChange={(e) => setConfig({...config, photo: {...config.photo, h: Number(e.target.value)}})}
+          className="w-14 px-2 py-1 bg-neutral-50 border border-neutral-200 rounded text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+        />
+      </div>
+    </div>
+  );
+
+  const handleUpdatePrompt = async (jobId: string) => {
+    if (!editingPromptValue.trim()) return toast.error("El prompt no puede estar vacío");
+    setIsUpdatingPrompt(true);
+    try {
+      const res = await fetch('/api/media/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: jobId, prompt: editingPromptValue })
+      });
+      if (res.ok) {
+        toast.success('Prompt actualizado correctamente');
+        setEditingPromptId(null);
+        fetchJobs();
+      } else {
+        toast.error('Error al actualizar el prompt');
+      }
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setIsUpdatingPrompt(false);
+    }
+  };
+
+  const paginatedJobs = jobs;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, dateFilter]);
+
+  return (
+    <div className="min-h-screen bg-[#F5EADC] p-4 sm:p-8 font-sans selection:bg-[#8B1F32]/20 text-neutral-900">
+      
+      {/* Header */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[#8B1F32] mb-1">
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-xs font-bold uppercase tracking-widest">Platform Admin</span>
+          </div>
+          <h1 className="text-3xl font-serif font-bold tracking-tight">Qustom Go</h1>
+          <p className="text-sm text-neutral-600">Gestión y control de producción musical.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-white px-4 py-2 rounded-2xl border border-neutral-100 shadow-sm flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">Sistema Activo</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto">
+        {/* Tabs */}
+        <div className="flex space-x-2 bg-white/50 p-1.5 rounded-2xl w-fit mb-10 border border-[#8B1F32]/10 shadow-sm">
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'history'
+                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20'
+                : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
+            }`}
+          >
+            History & Control
+          </button>
+          <button
+            onClick={() => setActiveTab('studio')}
+            className={`px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'studio'
+                ? 'bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20'
+                : 'text-neutral-500 hover:text-neutral-900 hover:bg-white/60'
+            }`}
+          >
+            Manual Studio
+          </button>
+          <button
+            onClick={() => {
+              resetTemplateForm();
+              handleTemplateModalOpenChange(true);
+            }}
+            className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Crear Plantilla
+          </button>
+          <button
+            onClick={() => setIsPaymentModalOpen(true)}
+            className="px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-neutral-500 hover:text-neutral-900 hover:bg-white/60 flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Medios de Pago
+          </button>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'history' && (
+          <div className="bg-white rounded-3xl border border-[#8B1F32]/10 overflow-hidden shadow-xl">
+            <div className="p-6 border-b border-neutral-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-[#8B1F32]" />
+                <h2 className="text-lg font-bold">Media Jobs Historial</h2>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Buscar Nro de WhatsApp..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs w-full sm:w-48 focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+                />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={e => setDateFilter(e.target.value)}
+                  className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[#8B1F32]"
+                />
+                <button
+                  onClick={() => fetchJobs()}
+                  className="p-2.5 text-neutral-400 hover:text-[#8B1F32] bg-neutral-50 hover:bg-[#F5EADC]/40 rounded-xl transition-all shadow-sm flex-shrink-0"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-neutral-50 text-neutral-400 border-b border-neutral-100">
+                  <tr>
+                    <th className="px-3.5 py-3.5 font-bold text-[10px] uppercase tracking-wider">Fecha</th>
+                    <th className="px-3 py-3.5 font-bold text-[10px] uppercase tracking-wider">Origen</th>
+                    <th className="px-3.5 py-3.5 font-bold text-[10px] uppercase tracking-wider">Prompt / Info</th>
+                    <th className="px-3 py-3.5 font-bold text-[10px] uppercase tracking-wider text-center">Pago</th>
+                    <th className="px-2.5 py-3.5 font-bold text-[10px] uppercase tracking-wider text-center">Generaciones</th>
+                    <th className="px-3 py-3.5 font-bold text-[10px] uppercase tracking-wider">Estado</th>
+                    <th className="px-3.5 py-3.5 font-bold text-[10px] uppercase tracking-wider">Media</th>
+                    <th className="px-3.5 py-3.5 font-bold text-[10px] uppercase tracking-wider text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {paginatedJobs.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-16 text-center text-neutral-400 italic">
+                        No se encontraron registros.
+                      </td>
+                    </tr>
+                  )}
+                  {paginatedJobs.map((job) => {
+                    const isLimitReached = (job.generaciones || 0) >= 2;
+                    return (
+                      <tr key={job.id} className="hover:bg-[#F5EADC]/10 transition-colors group">
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <div className="font-semibold text-neutral-700 text-[11px] leading-tight">
+                          {new Date(job.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        </div>
+                        <div className="text-[10px] text-neutral-400 font-mono mt-0.5">
+                          {new Date(job.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-tight ${
+                          job.source === 'landing' ? 'bg-[#8B1F32]/10 text-[#8B1F32]' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {job.source === 'landing' ? 'LANDING' : 'STUDIO'}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {editingPromptId === job.id ? (
+                          <div className="flex flex-col gap-1.5 w-full max-w-[200px]">
+                            <Textarea
+                              value={editingPromptValue}
+                              onChange={(e) => setEditingPromptValue(e.target.value)}
+                              disabled={isUpdatingPrompt}
+                              className="text-[10px] p-2 min-h-[60px] resize-none"
+                            />
+                            <div className="flex justify-end gap-1">
+                              <button onClick={() => setEditingPromptId(null)} disabled={isUpdatingPrompt} className="px-2 py-1 text-[9px] font-bold uppercase text-neutral-500 hover:bg-neutral-100 rounded">Cancelar</button>
+                              <button onClick={() => handleUpdatePrompt(job.id)} disabled={isUpdatingPrompt} className="px-2 py-1 text-[9px] font-bold uppercase bg-[#8B1F32] text-white rounded flex items-center">
+                                {isUpdatingPrompt ? <RefreshCw className="w-2 h-2 mr-1 animate-spin"/> : null} Guardar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="group relative max-w-[150px]">
+                            <div className="truncate font-medium text-neutral-800" title={job.prompt}>
+                              {job.prompt}
+                            </div>
+                            <button
+                              onClick={() => { setEditingPromptId(job.id); setEditingPromptValue(job.prompt); }}
+                              className="absolute -top-1 -right-2 opacity-0 group-hover:opacity-100 p-1 bg-white border border-neutral-200 shadow-sm text-neutral-500 hover:text-[#8B1F32] rounded transition-opacity"
+                              title="Editar prompt"
+                            >
+                              <Settings className="w-3 h-3"/>
+                            </button>
+                          </div>
+                        )}
+                        {job.recipient && (
+                          <div className="text-[9px] text-neutral-400 mt-0.5 flex items-center gap-1 font-bold uppercase max-w-[150px] truncate" title={`To: ${job.recipient}`}>
+                            <Send className="w-2.5 h-2.5 shrink-0" /> {job.recipient}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${
+                          (job.pago === 'Pagado' || job.pago === 'Realizado')
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : job.pago === 'Esperando'
+                            ? 'bg-neutral-100 text-neutral-600 border-neutral-200'
+                            : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          {(job.pago === 'Pagado' || job.pago === 'Realizado')
+                            ? 'Pagado'
+                            : job.pago === 'Esperando'
+                            ? 'Esperando'
+                            : 'Pendiente'}
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-3 whitespace-nowrap text-xs font-bold text-neutral-600 text-center">
+                        {job.generaciones || 0} / 2
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border ${statusColors[job.status]}`}>
+                          {statusIcons[job.status]}
+                          {job.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          {job.audioUrl && (
+                            <div className="w-24 overflow-hidden rounded-md shrink-0 bg-neutral-100/70 flex items-center">
+                              <audio controls preload="none" className="h-6 w-32 -ml-1 scale-90 origin-left" src={job.audioUrl}></audio>
+                            </div>
+                          )}
+                          {job.videoUrl && (
+                            <button
+                              onClick={() => window.open(job.videoUrl || '', '_blank')}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-[#8B1F32]/10 hover:bg-[#8B1F32] text-[#8B1F32] hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all shrink-0 shadow-sm"
+                              title="Ver video"
+                            >
+                              <Video className="w-3 h-3" /> Ver
+                            </button>
+                          )}
+                          {!job.audioUrl && !job.videoUrl && (
+                            <span className="text-[10px] text-neutral-400 italic">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap text-right space-x-1">
+                        {job.prompt && !job.audioUrl && (
+                          <button
+                            onClick={() => handleGenerateAudioFromHistory(job)}
+                            disabled={generatingAudioId === job.id || isLimitReached}
+                            className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all shadow-sm disabled:opacity-40 border border-transparent hover:border-blue-100 disabled:cursor-not-allowed"
+                            title={isLimitReached ? "Límite de generaciones alcanzado" : "Generate Audio"}
+                          >
+                            {generatingAudioId === job.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Music className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                        {job.audioUrl && (
+                          <button
+                            disabled={isLimitReached}
+                            onClick={() => {
+                              if (isLimitReached) return;
+                              setRegenerateJobId(job.id);
+                              const bg = job.backgroundUrl || '';
+                              setRegenerateBgUrl(bg);
+                              setRegenerateCustomBg(bg);
+                              setRegenerateUserPhotoUrl(job.userPhotoUrl || '');
+                              setRegenerateTitulo(job.titulo || '');
+                              setRegenerateArtista(job.artista || '');
+                              setRegenerateDedicatoria(job.dedicatoria || '');
+                              
+                              let parsedConfig: any = null;
+                              if (job.config) {
+                                try {
+                                  parsedConfig = typeof job.config === 'string' ? JSON.parse(job.config) : job.config;
+                                  if (typeof parsedConfig === 'string') parsedConfig = JSON.parse(parsedConfig);
+                                } catch(e) { console.error(e); }
+                              }
+
+                              if (parsedConfig) {
+                                const dedSize = parsedConfig.dedicatoriaSize ?? parsedConfig.dedicatorySize ?? parsedConfig.dedicatoria?.fontSize ?? 28;
+                                setRegenerateDedicatoriaSize(Number(dedSize));
+                                const newConfig: TemplateConfig = {
+                                  ...DEFAULT_TEMPLATE,
+                                  id: parsedConfig.id || '',
+                                  name: parsedConfig.name || 'Plantilla Cliente',
+                                  bgUrl: parsedConfig.backgroundUrl || parsedConfig.bgUrl || bg,
+                                  photo: {
+                                    x: Number(parsedConfig.photoX ?? parsedConfig.photo?.x ?? 130),
+                                    y: Number(parsedConfig.photoY ?? parsedConfig.photo?.y ?? 180),
+                                    w: Number(parsedConfig.photoWidth ?? parsedConfig.photo?.w ?? 820),
+                                    h: Number(parsedConfig.photoHeight ?? parsedConfig.photo?.h ?? 820)
+                                  },
+                                  titulo: {
+                                    ...DEFAULT_TEMPLATE.titulo,
+                                    x: parsedConfig.tituloX ?? parsedConfig.titulo?.x ?? 130,
+                                    y: Number(parsedConfig.tituloY ?? parsedConfig.titulo?.y ?? 1040),
+                                    fontSize: Number(parsedConfig.tituloSize ?? parsedConfig.titulo?.fontSize ?? 42)
+                                  },
+                                  artista: {
+                                    ...DEFAULT_TEMPLATE.artista,
+                                    x: parsedConfig.artistaX ?? parsedConfig.artista?.x ?? 130,
+                                    y: Number(parsedConfig.artistaY ?? parsedConfig.artista?.y ?? 1095),
+                                    fontSize: Number(parsedConfig.artistaSize ?? parsedConfig.artista?.fontSize ?? 30)
+                                  },
+                                  dedicatoria: {
+                                    ...DEFAULT_TEMPLATE.dedicatoria,
+                                    x: parsedConfig.dedicatoriaX ?? parsedConfig.dedicatoryX ?? parsedConfig.dedicatoria?.x ?? 540,
+                                    y: Number(parsedConfig.dedicatoriaY ?? parsedConfig.dedicatoryY ?? parsedConfig.dedicatoria?.y ?? 1620),
+                                    fontSize: Number(dedSize)
+                                  }
+                                };
+                                setRegenerateTemplateConfig(newConfig);
+                              } else {
+                                setRegenerateTemplateConfig({ ...DEFAULT_TEMPLATE, id: '' });
+                                setRegenerateDedicatoriaSize(28);
+                              }
+                              handleRegenerateModalOpenChange(true);
+                            }}
+                            className="p-1.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={isLimitReached ? "Límite de generaciones alcanzado" : "Generate Video"}
+                          >
+                            <Video className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(job.id)}
+                          className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shadow-sm border border-transparent hover:border-rose-100"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-neutral-50 flex items-center justify-between bg-white text-xs">
+                <span className="text-neutral-500 font-medium">
+                  Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, totalJobs)} de {totalJobs} registros
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  >
+                    Anterior
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-lg border text-xs font-bold transition-colors flex items-center justify-center ${
+                          currentPage === page
+                            ? 'bg-[#8B1F32] text-white border-[#8B1F32]'
+                            : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'studio' && (
+          <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10">
+            {/* Steps Column */}
+            <div className="bg-white rounded-3xl border border-[#8B1F32]/10 p-8 shadow-xl space-y-10">
+              <div className="flex justify-between items-center pb-6 border-b border-neutral-50">
+                <div>
+                  <h2 className="text-xl font-bold">Manual Studio</h2>
+                  <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider mt-1">Producción Paso a Paso</p>
+                </div>
+                {studioJobId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetStudio}
+                    className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 hover:text-[#8B1F32]"
+                  >
+                    Reset & New Job
+                  </Button>
+                )}
+              </div>
+              
+              {/* --- NUEVO: Fecha, Input Numérico y Modo --- */}
+              <div className="py-4 border-b border-neutral-50 space-y-6">
+                {/* Fecha y Número */}
+                <div>
+                  <p className="text-sm font-medium text-neutral-600 mb-2">
+                    Fecha actual: {new Date().toLocaleDateString()}
+                  </p>
+                  <input
+                    type="number"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="Escribe un número..."
+                    className="w-full max-w-xs rounded-xl border border-neutral-200 p-3 text-sm focus:border-[#8B1F32] focus:ring-1 focus:ring-[#8B1F32] outline-none transition-all"
+                  />
+                </div>
+
+                {/* Selector de Modo */}
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-neutral-800">Modo de inicio:</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={studioMode === 'create' ? 'default' : 'outline'}
+                      onClick={() => setStudioMode('create')}
+                      className={studioMode === 'create' ? 'bg-[#8B1F32] text-white hover:bg-[#6b1524]' : ''}
+                    >
+                      Crear canción
+                    </Button>
+                    <Button
+                      variant={studioMode === 'upload' ? 'default' : 'outline'}
+                      onClick={() => setStudioMode('upload')}
+                      className={studioMode === 'upload' ? 'bg-[#8B1F32] text-white hover:bg-[#6b1524]' : ''}
+                    >
+                      Subir audio
+                    </Button>
+                  </div>
+
+                  {/* Input de archivo condicional */}
+                  {studioMode === 'upload' && (
+                    <div className="mt-4 p-5 border border-dashed border-neutral-300 rounded-xl bg-neutral-50/50">
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Selecciona tu archivo de audio:
+                      </label>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => setSelectedAudioFile(e.target.files?.[0] || null)}
+                        className="block w-full text-sm text-neutral-500
+                          file:mr-4 file:py-2.5 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-[#8B1F32]/10 file:text-[#8B1F32]
+                          hover:file:bg-[#8B1F32]/20 cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Step 1: Prompt (Solo si es "create") */}
+              {studioMode === 'create' && (
+                <div className="space-y-4 relative">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20">
+                      1
+                    </div>
+                    <h3 className="text-md font-bold text-neutral-800">Generación de Audio</h3>
+                  </div>
+                  
+                  <div className="space-y-4 pl-11">
+                    <Textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      disabled={isProcessing}
+                      placeholder="Describe el estilo y letra para generar la canción..."
+                      className="w-full rounded-2xl border-neutral-200 focus:ring-[#8B1F32] min-h-[120px] text-sm resize-none"
+                    />
+                    {studioAudioUrl && (
+                      <div className="mt-4 p-4 bg-[#F5EADC]/20 rounded-2xl border border-[#8B1F32]/10">
+                        <p className="text-[10px] font-bold uppercase text-[#8B1F32] tracking-widest mb-3">Audio Pre-Producido:</p>
+                        <audio controls preload="none" className="w-full h-8 opacity-90" src={studioAudioUrl}></audio>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Renderizado */}
+              <div className="space-y-6 relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all bg-[#8B1F32] text-white shadow-lg shadow-[#8B1F32]/20">
+                    {studioMode === 'create' ? '2' : '1'}
+                  </div>
+                  <h3 className="text-md font-bold text-neutral-800">Renderizado de Video</h3>
+                </div>
+                
+                <div className="space-y-5 pl-11">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Plantilla Visual</Label>
+                    {renderTemplateSelector(
+                      studioTemplateConfig.id,
+                      setStudioTemplateConfig,
+                      setBackgroundUrl,
+                      setCustomBackground,
+                      setUserPhotoUrl,
+                      isProcessing,
+                      setDedicatoriaSize
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">URL Fondo Reproductor</Label>
+                    <Input
+                      type="url"
+                      value={backgroundUrl === 'custom' ? customBackground : backgroundUrl}
+                      onChange={(e) => {
+                        setBackgroundUrl('custom');
+                        setCustomBackground(e.target.value);
+                      }}
+                      disabled={isProcessing}
+                      placeholder="https://..."
+                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada Imagen</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={userPhotoUrl}
+                        onChange={(e) => setUserPhotoUrl(e.target.value)}
+                        disabled={isProcessing}
+                        placeholder="https://... o sube foto"
+                        className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10 flex-1"
+                      />
+                      <div className="relative flex items-center justify-center">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          disabled={isProcessing || isUploadingPhoto}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              await uploadCoverImage(file, setUserPhotoUrl);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                        <Button type="button" disabled={isProcessing || isUploadingPhoto} className="bg-[#8B1F32]/10 text-[#8B1F32] hover:bg-[#8B1F32]/20 w-auto px-4 h-10 rounded-xl whitespace-nowrap text-xs font-semibold pointer-events-none">
+                          {isUploadingPhoto ? 'Subiendo...' : 'Subir Foto'}
+                        </Button>
+                      </div>
+                    </div>
+                    {renderPhotoControls(studioTemplateConfig, setStudioTemplateConfig)}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
+                      <Input
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                        disabled={isProcessing}
+                        placeholder="Canción..."
+                        className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
+                      />
+                      {renderConfigControls(studioTemplateConfig, setStudioTemplateConfig, 'titulo')}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
+                      <Input
+                        value={artista}
+                        onChange={(e) => setArtista(e.target.value)}
+                        disabled={isProcessing}
+                        placeholder="Nombre..."
+                        className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs h-10"
+                      />
+                      {renderConfigControls(studioTemplateConfig, setStudioTemplateConfig, 'artista')}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria Final</Label>
+                    <Textarea
+                      value={dedicatoria}
+                      onChange={(e) => setDedicatoria(e.target.value)}
+                      disabled={isProcessing}
+                      placeholder="Mensaje corto..."
+                      rows={2}
+                      className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] text-xs resize-none"
+                    />
+                    {renderConfigControls(studioTemplateConfig, setStudioTemplateConfig, 'dedicatoria', dedicatoriaSize, setDedicatoriaSize)}
+                  </div>
+
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isProcessing}
+                    className="w-full h-12 bg-[#8B1F32] hover:bg-[#731929] text-white rounded-xl shadow-lg shadow-[#8B1F32]/20 transition-all font-bold text-sm mt-4"
+                  >
+                    {isProcessing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                    Procesar y Generar Video
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Column */}
+            <div className="space-y-8 flex flex-col items-center">
+              <div className="w-full max-w-[320px] bg-white p-3 rounded-[40px] shadow-2xl border border-neutral-100 relative group">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-50 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Headphones className="w-4 h-4 text-[#8B1F32]" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400">Preview Studio</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-500">Live</span>
+                  </div>
+                </div>
+
+                <div className="rounded-[32px] overflow-hidden bg-neutral-950 aspect-[9/16] shadow-inner relative">
+                  <VideoEditorPreview
+                    config={studioTemplateConfig}
+                    onUpdateConfig={setStudioTemplateConfig}
+                    backgroundUrl={backgroundUrl}
+                    customBackground={customBackground}
+                    userPhotoUrl={userPhotoUrl}
+                    titulo={titulo}
+                    artista={artista}
+                    dedicatoria={dedicatoria}
+                    dedicatoriaSize={dedicatoriaSize}
+                    scale={0.296}
+                  />
+                  <div className="absolute inset-0 pointer-events-none border-[12px] border-white/5 rounded-[32px]" />
+                </div>
+              </div>
+
+              {/* Template Save Actions Removed From Here */}
+            </div>
+          </div>
+        )}
+
+        {/* Regenerate Video Modal */}
+        <Dialog open={isRegenerateModalOpen} onOpenChange={handleRegenerateModalOpenChange}>
+          <DialogContent className="bg-[#F5EADC] border-none text-neutral-900 max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl p-0">
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Form Side */}
+              <div className="flex-1 p-8 space-y-6">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-serif font-bold text-neutral-900 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-[#8B1F32]" />
+                    Renderizado Especial
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Plantilla Base</Label>
+                    {renderTemplateSelector(
+                      regenerateTemplateConfig.id,
+                      setRegenerateTemplateConfig,
+                      setRegenerateBgUrl,
+                      setRegenerateCustomBg,
+                      setRegenerateUserPhotoUrl,
+                      isRegenerating,
+                      setRegenerateDedicatoriaSize
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Fondo (URL)</Label>
+                      <Input
+                        value={regenerateBgUrl === 'custom' ? regenerateCustomBg : regenerateBgUrl}
+                        onChange={(e) => { setRegenerateBgUrl('custom'); setRegenerateCustomBg(e.target.value); }}
+                        placeholder="https://..."
+                        className="rounded-xl border-neutral-200 text-xs h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Portada (URL o Archivo)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={regenerateUserPhotoUrl}
+                          onChange={(e) => setRegenerateUserPhotoUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="rounded-xl border-neutral-200 text-xs h-10 flex-1"
+                        />
+                        <div className="relative flex items-center justify-center">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingPhoto}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                await uploadCoverImage(file, setRegenerateUserPhotoUrl);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                          <Button type="button" disabled={isUploadingPhoto} className="bg-[#8B1F32]/10 text-[#8B1F32] hover:bg-[#8B1F32]/20 w-auto px-3 h-10 rounded-xl whitespace-nowrap text-xs font-semibold pointer-events-none">
+                            {isUploadingPhoto ? '...' : 'Subir'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {renderPhotoControls(regenerateTemplateConfig, setRegenerateTemplateConfig)}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
+                      <Input
+                        value={regenerateTitulo}
+                        onChange={(e) => setRegenerateTitulo(e.target.value)}
+                        placeholder="Nombre..."
+                        className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                      />
+                      {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'titulo')}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
+                      <Input
+                        value={regenerateArtista}
+                        onChange={(e) => setRegenerateArtista(e.target.value)}
+                        placeholder="Artista..."
+                        className="rounded-xl border-neutral-200 text-xs h-10 mb-2"
+                      />
+                      {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'artista')}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria</Label>
+                    <Textarea
+                      value={regenerateDedicatoria}
+                      onChange={(e) => setRegenerateDedicatoria(e.target.value)}
+                      placeholder="Mensaje..."
+                      rows={2}
+                      className="rounded-xl border-neutral-200 text-xs resize-none mb-2"
+                    />
+                    {renderConfigControls(regenerateTemplateConfig, setRegenerateTemplateConfig, 'dedicatoria', regenerateDedicatoriaSize, setRegenerateDedicatoriaSize)}
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
+                  <Button variant="ghost" onClick={() => handleRegenerateModalOpenChange(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+                  <Button
+                    onClick={handleRegenerateVideo}
+                    disabled={isRegenerating}
+                    className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                  >
+                    {isRegenerating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Video className="w-4 h-4 mr-2" />}
+                    Comenzar Render
+                  </Button>
+                </DialogFooter>
+              </div>
+
+              {/* Preview Side */}
+              <div className="bg-white p-8 flex flex-col items-center justify-center border-l border-neutral-50 w-full md:w-[320px]">
+                <div className="w-[200px] h-[355px] rounded-[32px] overflow-hidden bg-neutral-950 shadow-2xl relative">
+                  <VideoEditorPreview
+                    config={regenerateTemplateConfig}
+                    onUpdateConfig={setRegenerateTemplateConfig}
+                    backgroundUrl={regenerateBgUrl}
+                    customBackground={regenerateCustomBg}
+                    userPhotoUrl={regenerateUserPhotoUrl}
+                    titulo={regenerateTitulo}
+                    artista={regenerateArtista}
+                    dedicatoria={regenerateDedicatoria}
+                    dedicatoriaSize={regenerateDedicatoriaSize}
+                    scale={0.185}
+                  />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Template Modal */}
+        <Dialog open={isTemplateModalOpen} onOpenChange={handleTemplateModalOpenChange}>
+          <DialogContent className="bg-[#F5EADC] border-none text-neutral-900 max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl p-0">
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Form Side */}
+              <div className="flex-1 p-8 space-y-6">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-serif font-bold text-neutral-900 flex items-center gap-2">
+                    <ImagePlus className="w-6 h-6 text-[#8B1F32]" />
+                    Crear Nueva Plantilla
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Plantilla Base</Label>
+                    {renderTemplateSelector(
+                      templateConfig.id,
+                      setTemplateConfig,
+                      setTemplateBgUrl,
+                      setTemplateCustomBg,
+                      setTemplateUserPhotoUrl,
+                      false,
+                      setTemplateDedicatoriaSize
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Fondo (URL)</Label>
+                      <Input
+                        value={templateBgUrl === 'custom' ? templateCustomBg : templateBgUrl}
+                        onChange={(e) => { setTemplateBgUrl('custom'); setTemplateCustomBg(e.target.value); }}
+                        placeholder="https://..."
+                        className="rounded-xl border-neutral-200 text-xs h-10"
+                      />
+                    </div>
+                  </div>
+                  {renderPhotoControls(templateConfig, setTemplateConfig)}
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Título</Label>
+                      {renderConfigControls(templateConfig, setTemplateConfig, 'titulo')}
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Artista</Label>
+                      {renderConfigControls(templateConfig, setTemplateConfig, 'artista')}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Dedicatoria</Label>
+                    {renderConfigControls(templateConfig, setTemplateConfig, 'dedicatoria', templateDedicatoriaSize, setTemplateDedicatoriaSize)}
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-6 border-t border-neutral-100 sm:justify-between">
+                  <Button variant="ghost" onClick={() => handleTemplateModalOpenChange(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+                  <Button
+                    onClick={() => {
+                      handleSaveTemplate(templateConfig, templateBgUrl === 'custom' ? templateCustomBg : templateBgUrl, templateDedicatoriaSize, 'completa');
+                      handleTemplateModalOpenChange(false);
+                    }}
+                    className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+                  >
+                    <ImagePlus className="w-4 h-4 mr-2" />
+                    Crear Plantilla
+                  </Button>
+                </DialogFooter>
+              </div>
+
+              {/* Preview Side */}
+              <div className="bg-white p-8 flex flex-col items-center justify-center border-l border-neutral-50 w-full md:w-[320px]">
+                <div className="w-[200px] h-[355px] rounded-[32px] overflow-hidden bg-neutral-950 shadow-2xl relative">
+                  <VideoEditorPreview
+                    config={templateConfig}
+                    onUpdateConfig={setTemplateConfig}
+                    backgroundUrl={templateBgUrl}
+                    customBackground={templateCustomBg}
+                    userPhotoUrl={templateUserPhotoUrl}
+                    titulo={templateTitulo}
+                    artista={templateArtista}
+                    dedicatoria={templateDedicatoria}
+                    dedicatoriaSize={templateDedicatoriaSize}
+                    scale={0.185}
+                  />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment Methods Modal */}
+        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+          <DialogContent className="bg-white border-none text-neutral-900 max-w-lg rounded-3xl shadow-2xl p-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-serif font-bold flex items-center gap-2 text-[#8B1F32]">
+                <Settings className="w-6 h-6" />
+                Configurar Medios de Pago
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Instrucciones de Pago</Label>
+                <Textarea
+                  value={paymentInstructions}
+                  onChange={(e) => setPaymentInstructions(e.target.value)}
+                  placeholder="Ej: Transfiere al BCP 123456789 a nombre de..."
+                  className="rounded-xl border-neutral-200 focus:ring-[#8B1F32] resize-none min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-neutral-400 tracking-widest">URL del QR</Label>
+                <Input
+                  type="url"
+                  value={paymentQrUrl}
+                  onChange={(e) => setPaymentQrUrl(e.target.value)}
+                  placeholder="https://ejemplo.com/mi-qr.png"
+                  className="rounded-xl border-neutral-200 focus:ring-[#8B1F32]"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-8 sm:justify-between">
+              <Button variant="ghost" onClick={() => setIsPaymentModalOpen(false)} className="rounded-xl text-neutral-500 font-bold uppercase text-[10px] tracking-widest">
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  localStorage.setItem('paymentSettings', JSON.stringify({
+                    instructions: paymentInstructions,
+                    qrUrl: paymentQrUrl
+                  }));
+                  toast.success('Medios de pago guardados');
+                  setIsPaymentModalOpen(false);
+                }}
+                className="rounded-xl bg-[#8B1F32] hover:bg-[#731929] text-white px-8 font-bold text-sm shadow-lg shadow-[#8B1F32]/20"
+              >
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+      </div>
+    </div>
+  );
+}

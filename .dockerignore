@@ -1,0 +1,13 @@
+node_modules
+.output
+.git
+.gitignore
+.dockerignore
+dist
+*.log
+.env
+.env.*
+public/media/*
+!public/media/.gitkeep
+test_build.js
+*.tsbuildinfo

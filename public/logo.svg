@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Stem & Flag -->
+  <path
+    fill="#7924EA"
+    d="M110 24 C110 19 115.5 17 120.5 20.5 C134 30 151 43 161 58 C170 71 170 87 164 98 C162 102 158.5 102.5 157.5 97 C156 86 149 75 136 66 C129 61.5 124 59.5 121 59 L121 134 C121 137.5 119 140 115.5 140 C112 140 110 137.5 110 134 L110 24 Z"
+  />
+  <!-- Outer Notehead Rim (R = 44, center 72,134) -->
+  <path
+    d="M 28.7 141.6 A 44 44 0 0 1 115.5 126.4"
+    stroke="#7924EA"
+    stroke-width="9.5"
+    stroke-linecap="round"
+  />
+  <path
+    d="M 116 134 A 44 44 0 0 1 64.4 177.3"
+    stroke="#7924EA"
+    stroke-width="9.5"
+    stroke-linecap="round"
+  />
+  <!-- Ridge 2 (R = 30.5, center 72,134, smooth single arc) -->
+  <path
+    d="M 41.8 158.5 C 39.5 149.5 41.5 138 41.5 134 A 30.5 30.5 0 1 1 99.6 147.2"
+    stroke="#7924EA"
+    stroke-width="8.5"
+    stroke-linecap="round"
+  />
+  <!-- Ridge 3 (R = 17.5, center 72,134, smooth single arc) -->
+  <path
+    d="M 52.5 168.5 C 52 158 54.5 144 54.5 134 A 17.5 17.5 0 1 1 87.2 142.6"
+    stroke="#7924EA"
+    stroke-width="8.5"
+    stroke-linecap="round"
+  />
+  <!-- Ridge 4 (Inner core) -->
+  <path
+    d="M 67.5 161 C 66.5 151 67.5 141 71 136 C 74 132.5 78.5 134 79 139"
+    stroke="#7924EA"
+    stroke-width="8.5"
+    stroke-linecap="round"
+  />
+</svg>
