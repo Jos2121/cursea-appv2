@@ -1171,7 +1171,7 @@ export default function Dashboard() {
                           </span>
                           {(job.pago === 'Pagado' || job.pago === 'Realizado') && job.voucherUrl && (
                             <button
-                              onClick={() => window.open(job.voucherUrl, '_blank')}
+                              onClick={() => handleDownload(job.voucherUrl!, `comprobante_${job.id}.jpg`)}
                               className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                               title="Descargar Comprobante"
                             >
