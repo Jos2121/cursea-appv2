@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
-import { pool } from "../../../utils/db";
+import { pool, ensureSchema } from "../../../utils/db";
 
 const mapJobRow = (row: any) => ({
   ...row,
@@ -14,6 +14,7 @@ const mapJobRow = (row: any) => ({
 });
 
 export default defineHandler(async (event) => {
+  await ensureSchema();
   const query = getQuery(event);
   const hasPagination = query.page !== undefined || query.limit !== undefined;
 

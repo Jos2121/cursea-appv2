@@ -476,6 +476,10 @@ export default function Dashboard() {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error('Error al descargar');
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        throw new Error('El archivo no está disponible o la ruta es inválida');
+      }
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -484,10 +488,10 @@ export default function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       toast.dismiss(toastId);
-    } catch (err) {
-      toast.error("Error al descargar el archivo", { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || "Error al descargar el archivo", { id: toastId });
     }
   };
 
@@ -1171,7 +1175,10 @@ export default function Dashboard() {
                           </span>
                           {(job.pago === 'Pagado' || job.pago === 'Realizado') && job.voucherUrl && (
                             <button
-                              onClick={() => handleDownload(job.voucherUrl!, `comprobante_${job.id}.jpg`)}
+                              onClick={() => {
+                                const ext = job.voucherUrl!.split('.').pop()?.split('?')[0] || 'jpg';
+                                handleDownload(job.voucherUrl!, `comprobante_${job.id}.${ext}`);
+                              }}
                               className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                               title="Descargar Comprobante"
                             >

@@ -32,6 +32,13 @@ export default defineHandler(async (event) => {
   unlinkIfLocal(job.audioUrl);
   unlinkIfLocal(job.videoUrl);
 
+  if (job.voucherUrl && job.voucherUrl.startsWith("/media/vouchers/")) {
+    const voucherPath = path.join(mediaDir, "vouchers", path.basename(job.voucherUrl));
+    if (fs.existsSync(voucherPath)) {
+      fs.unlinkSync(voucherPath);
+    }
+  }
+
   // Borrar foto de portada local solo si ningún otro job la está usando
   if (job.userPhotoUrl && job.userPhotoUrl.startsWith("/media/cover_")) {
     const refCheck = await pool.query(

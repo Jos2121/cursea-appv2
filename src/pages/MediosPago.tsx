@@ -13,6 +13,21 @@ export default function MediosPago() {
   const [phone, setPhone] = useState("");
   const [voucherUrl, setVoucherUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const [previewError, setPreviewError] = useState(false);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      setPreviewError(false);
+      return;
+    }
+    setPreviewError(false);
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
 
   useEffect(() => {
     try {
@@ -175,15 +190,29 @@ export default function MediosPago() {
                 <div className="absolute inset-0 bg-[#F5EADC]/40 rounded-2xl group-hover:bg-[#F5EADC]/60 transition-colors pointer-events-none"></div>
                 <div className="relative border-2 border-dashed border-[#8B1F32]/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all group-hover:border-[#8B1F32]/50">
                   {selectedFile ? (
-                    <>
-                      <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-3" />
-                      <p className="text-sm font-medium text-emerald-700">
-                        {selectedFile.name}
+                    <div className="flex flex-col items-center">
+                      {previewUrl && !previewError ? (
+                        <div className="w-24 h-24 mb-3 rounded-xl overflow-hidden border border-neutral-200 shadow-sm bg-neutral-100 flex items-center justify-center">
+                          <img
+                            src={previewUrl}
+                            alt="Comprobante"
+                            onError={() => setPreviewError(true)}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 mb-3 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 flex items-center justify-center text-emerald-600">
+                          <CheckCircle2 className="w-10 h-10" />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 text-emerald-700 font-semibold text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="max-w-[200px] truncate">{selectedFile.name}</span>
+                      </div>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Clic para cambiar
                       </p>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Clic para cambiar de imagen
-                      </p>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <UploadCloud className="w-10 h-10 text-[#8B1F32] mb-3" />
@@ -191,7 +220,7 @@ export default function MediosPago() {
                         Arrastra tu imagen o haz clic aquí
                       </p>
                       <p className="text-xs text-neutral-500 mt-1">
-                        Solo imágenes (JPG, PNG)
+                        Solo imágenes (JPG, PNG, WebP)
                       </p>
                     </>
                   )}
@@ -199,7 +228,10 @@ export default function MediosPago() {
                     type="file" 
                     accept="image/*" 
                     required={!selectedFile}
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setSelectedFile(f);
+                    }}
                     disabled={isSuccess || isSubmitting}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
                   />
