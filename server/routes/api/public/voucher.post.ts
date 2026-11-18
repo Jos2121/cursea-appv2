@@ -10,7 +10,7 @@ export default defineHandler(async (event) => {
   const formData = await readMultipartFormData(event);
   if (!formData || formData.length === 0) throw createError({ statusCode: 400, statusMessage: "No data provided" });
 
-  const fileField = formData.find((field) => field.name === "voucher");
+  const fileField = formData.find((field) => field.name === "voucher" || field.filename);
   const jobIdField = formData.find((field) => field.name === "jobId");
   const waField = formData.find((field) => field.name === "whatsappNumber");
 
@@ -33,12 +33,12 @@ export default defineHandler(async (event) => {
     [publicVoucherUrl, jobId]
   );
 
-  const tgFormData = new FormData();
-  tgFormData.append('chat_id', process.env.TELEGRAM_CHAT_ID || '');
-  tgFormData.append('photo', new Blob([fileField.data]), fileName);
-  tgFormData.append('caption', `🔔 Nuevo pago recibido\nID: ${jobId}\nWhatsApp: ${whatsappNumber}\nEstado: Pagado`);
-
   try {
+    const tgFormData = new FormData();
+    tgFormData.append('chat_id', process.env.TELEGRAM_CHAT_ID || '');
+    tgFormData.append('photo', new Blob([fileField.data]), fileName);
+    tgFormData.append('caption', `🔔 Nuevo pago recibido\nID: ${jobId}\nWhatsApp: ${whatsappNumber}\nEstado: Pagado`);
+
     await fetchWithTimeout(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
       body: tgFormData

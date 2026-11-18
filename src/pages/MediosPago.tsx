@@ -12,6 +12,7 @@ export default function MediosPago() {
   const [plan, setPlan] = useState("");
   const [phone, setPhone] = useState("");
   const [voucherUrl, setVoucherUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     try {
@@ -36,8 +37,7 @@ export default function MediosPago() {
       return;
     }
 
-    const fileInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = fileInput?.files?.[0];
+    const file = selectedFile;
     
     if (!file) {
       toast.error("Por favor adjunta tu comprobante de pago");
@@ -174,17 +174,32 @@ export default function MediosPago() {
               <div className="relative group">
                 <div className="absolute inset-0 bg-[#F5EADC]/40 rounded-2xl group-hover:bg-[#F5EADC]/60 transition-colors pointer-events-none"></div>
                 <div className="relative border-2 border-dashed border-[#8B1F32]/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all group-hover:border-[#8B1F32]/50">
-                  <UploadCloud className="w-10 h-10 text-[#8B1F32] mb-3" />
-                  <p className="text-sm font-medium text-neutral-900">
-                    Arrastra tu imagen o haz clic aquí
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Solo imágenes (JPG, PNG)
-                  </p>
+                  {selectedFile ? (
+                    <>
+                      <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-3" />
+                      <p className="text-sm font-medium text-emerald-700">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Clic para cambiar de imagen
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-10 h-10 text-[#8B1F32] mb-3" />
+                      <p className="text-sm font-medium text-neutral-900">
+                        Arrastra tu imagen o haz clic aquí
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Solo imágenes (JPG, PNG)
+                      </p>
+                    </>
+                  )}
                   <input 
                     type="file" 
                     accept="image/*" 
-                    required 
+                    required={!selectedFile}
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     disabled={isSuccess || isSubmitting}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed" 
                   />
