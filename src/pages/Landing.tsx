@@ -312,11 +312,7 @@ export default function Landing() {
         return;
       }
 
-      const planLabel = plan === 'especial'
-        ? 'Especial - Inspirada en canción original (S/ 35 / $12 USD)'
-        : 'Estándar (S/ 19 / $7 USD)';
-      const text = encodeURIComponent(`¡Listo! He llenado el formulario para crear mi canción personalizada. Bríndame los métodos de pago.\n\nPlan elegido: ${planLabel}\nMi número de petición es: ${whatsappNumber}`);
-      window.location.href = `https://wa.me/${cleanNumber}?text=${text}`;
+      window.location.href = `/medios-pago?jobId=${data.id}&plan=${plan}&phone=${cleanNumber}`;
       
     } catch (error: any) {
       toast.error(error.message || 'Error al procesar tu solicitud. Intenta de nuevo.');

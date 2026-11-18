@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, CheckCircle2, QrCode, CreditCard, Building } from 'lucide-react';
+import { UploadCloud, CheckCircle2, QrCode, CreditCard, Building, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function MediosPago() {
@@ -7,6 +7,11 @@ export default function MediosPago() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [instructions, setInstructions] = useState("Transfiere a nuestra cuenta bancaria y adjunta el comprobante para comenzar a producir tu canción.");
   const [qrUrl, setQrUrl] = useState("");
+  
+  const [jobId, setJobId] = useState("");
+  const [plan, setPlan] = useState("");
+  const [phone, setPhone] = useState("");
+  const [voucherUrl, setVoucherUrl] = useState("");
 
   useEffect(() => {
     try {
@@ -17,19 +22,94 @@ export default function MediosPago() {
         if (parsed.qrUrl) setQrUrl(parsed.qrUrl);
       }
     } catch (e) {}
+
+    const params = new URLSearchParams(window.location.search);
+    setJobId(params.get('jobId') || '');
+    setPlan(params.get('plan') || '');
+    setPhone(params.get('phone') || '');
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!jobId) {
+      toast.error("No se encontró el ID de la petición. Por favor, regresa al formulario.");
+      return;
+    }
+
+    const fileInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+    
+    if (!file) {
+      toast.error("Por favor adjunta tu comprobante de pago");
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simular el tiempo de subida
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const formData = new FormData();
+      formData.append('voucher', file);
+      formData.append('jobId', jobId);
+      if (phone) formData.append('whatsappNumber', phone);
+
+      const res = await fetch('/api/public/voucher', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.statusMessage || "Error al enviar voucher");
+
       setIsSuccess(true);
-      toast.success("Voucher enviado. Validaremos tu pago en breve");
-    }, 1500);
+      toast.success("Pago confirmado y procesado con éxito.");
+    } catch (err: any) {
+      toast.error(err.message || "Hubo un error al enviar tu comprobante");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isSuccess) {
+    const planLabel = plan === 'especial' 
+      ? 'Especial - Inspirada en canción original' 
+      : 'Estándar';
+    const text = encodeURIComponent(`¡Hola! Ya envié mi comprobante de pago.\n\nPlan elegido: ${planLabel}\nID Petición: ${jobId}`);
+    const waLink = `https://wa.me/${phone}?text=${text}`;
+
+    return (
+      <div className="min-h-screen bg-[#F5EADC] flex flex-col items-center justify-center py-12 px-6">
+        <div className="bg-white rounded-3xl shadow-xl p-10 max-w-2xl w-full text-center border border-neutral-100">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-serif font-bold text-neutral-900 mb-4">
+            ¡Pago Confirmado Exitosamente!
+          </h1>
+          <p className="text-neutral-600 mb-8 text-lg">
+            Hemos recibido tu comprobante y el estado de tu petición ha sido actualizado a <span className="font-bold text-emerald-600">Pagado</span> en nuestro sistema. ¡Pronto comenzaremos a producir tu canción!
+          </p>
+
+          <div className="bg-neutral-50 rounded-2xl p-6 text-left mb-8 border border-neutral-100">
+            <h3 className="font-bold text-neutral-900 mb-3 uppercase text-xs tracking-wider">Resumen de tu compra</h3>
+            <ul className="space-y-2 text-sm text-neutral-600">
+              <li><span className="font-semibold text-neutral-800">Plan:</span> {planLabel}</li>
+              <li><span className="font-semibold text-neutral-800">ID de Petición:</span> {jobId}</li>
+            </ul>
+          </div>
+
+          <a 
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-lg font-bold py-4 px-8 rounded-2xl shadow-lg transition-transform transform hover:scale-[1.02] w-full sm:w-auto"
+          >
+            <MessageCircle className="w-6 h-6" />
+            Notificar por WhatsApp
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F5EADC] text-neutral-900 font-sans py-12 px-6 lg:px-8 flex flex-col items-center justify-center">
