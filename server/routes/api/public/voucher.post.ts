@@ -1,11 +1,12 @@
 import { defineHandler } from "nitro";
 import { readMultipartFormData, createError } from "nitro/h3";
-import { pool } from "../../../utils/db";
+import { pool, ensureSchema } from "../../../utils/db";
 import { fetchWithTimeout } from "../../../utils/ffmpegQueue";
 import fs from "node:fs/promises";
 import path from "node:path";
 
 export default defineHandler(async (event) => {
+  await ensureSchema();
   const formData = await readMultipartFormData(event);
   if (!formData || formData.length === 0) throw createError({ statusCode: 400, statusMessage: "No data provided" });
 
@@ -28,8 +29,8 @@ export default defineHandler(async (event) => {
   await fs.writeFile(filePath, fileField.data);
 
   await pool.query(
-    `UPDATE "MediaJob" SET pago = 'Pagado', "updatedAt" = NOW() WHERE id = $1`,
-    [jobId]
+    `UPDATE "MediaJob" SET pago = 'Pagado', "voucherUrl" = $1, "updatedAt" = NOW() WHERE id = $2`,
+    [publicVoucherUrl, jobId]
   );
 
   const tgFormData = new FormData();

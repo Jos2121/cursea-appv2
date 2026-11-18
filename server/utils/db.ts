@@ -27,6 +27,7 @@ export function ensureSchema(): Promise<void> {
             ADD COLUMN IF NOT EXISTS "userPhotoUrl" TEXT,
             ADD COLUMN IF NOT EXISTS "titulo" TEXT,
             ADD COLUMN IF NOT EXISTS "artista" TEXT,
+            ADD COLUMN IF NOT EXISTS "voucherUrl" TEXT,
             ADD COLUMN IF NOT EXISTS "dedicatoria" TEXT;
         `);
       } catch (e) {
